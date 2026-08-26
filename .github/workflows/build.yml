@@ -1,19 +1,30 @@
 name: Build Windows EXE
+
 on:
   workflow_dispatch:
   push:
     branches: [main]
+
 jobs:
   build:
     runs-on: windows-latest
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
       - name: Build
         shell: cmd
         run: |
-          call "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           cl /nologo /O2 /DUNICODE /D_UNICODE launchpad_rgb_ambient.c /link winmm.lib comctl32.lib pdh.lib /SUBSYSTEM:WINDOWS /OUT:Launchpad_RGB_Ambient.exe
-      - uses: actions/upload-artifact@v4
+
+      - name: Upload EXE
+        uses: actions/upload-artifact@v4
         with:
           name: Launchpad_RGB_Ambient
           path: Launchpad_RGB_Ambient.exe
