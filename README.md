@@ -1,1 +1,0 @@
-# Launchpad_RGB_Ambient
