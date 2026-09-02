@@ -8,19 +8,22 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4  # 使用最新的 v4 版本
+      uses: actions/checkout@v4
 
-    - name: Setup MSVC
-      uses: ilammy/msvc-env@v1 # 确保这个 action 在 GitHub 上是可用的
+    # 使用 GitHub 官方提供的 MSVC 环境配置，不需要额外安装 Action
+    - name: Set up MSVC
+      uses: ilammy/setup-msbuild@v2 # 这是官方推荐的稳定方式
 
     - name: Configure CMake
-      run: cmake -B ${{ github.workspace }}/build -DCMAKE_BUILD_TYPE=Release
+      run: cmake -B build -DCMAKE_BUILD_TYPE=Release
 
     - name: Build Project
-      run: cmake --build ${{ github.workspace }}/build --config Release
+      # 使用 --config Release 确保生成的是 Release 版 exe
+      run: cmake --build build --config Release
 
     - name: Upload Artifact
-      uses: actions/upload-artifact@v4  # 必须使用 v4 以解决弃用问题
+      uses: actions/upload-artifact@v4
       with:
         name: LaunchpadRGBAmbient
+        # 注意：CMake 在 Windows 上默认会把 exe 放在 build/Release/ 目录下
         path: ${{ github.workspace }}/build/Release/LaunchpadRGBAmbient.exe
