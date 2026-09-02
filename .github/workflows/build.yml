@@ -9,7 +9,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     
-    - name: Add MSVC to path
+    - name: Setup MSVC
       uses: ilammy/msvc-env@v1
     
     - name: Configure CMake
@@ -19,7 +19,7 @@ jobs:
       run: cmake --build ${{ github.workspace }}/build --config Release
     
     - name: Upload artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: LaunchpadRGBAmbient
         path: ${{ github.workspace }}/build/Release/LaunchpadRGBAmbient.exe
