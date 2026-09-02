@@ -7,23 +7,21 @@ jobs:
     runs-on: windows-latest
     
     steps:
+    # 1. 拉取你的代码
     - name: Checkout code
       uses: actions/checkout@v4
 
-    # 使用 GitHub 官方提供的 MSVC 环境配置，不需要额外安装 Action
-    - name: Set up MSVC
-      uses: ilammy/setup-msbuild@v2 # 这是官方推荐的稳定方式
-
+    # 2. 配置 CMake (Windows Runner 自带了 CMake)
     - name: Configure CMake
       run: cmake -B build -DCMAKE_BUILD_TYPE=Release
 
+    # 3. 使用 MSVC 进行编译 (Runner 环境已经配置好了环境，直接调用即可)
     - name: Build Project
-      # 使用 --config Release 确保生成的是 Release 版 exe
       run: cmake --build build --config Release
 
+    # 4. 上传生成的 EXE 文件
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
         name: LaunchpadRGBAmbient
-        # 注意：CMake 在 Windows 上默认会把 exe 放在 build/Release/ 目录下
         path: ${{ github.workspace }}/build/Release/LaunchpadRGBAmbient.exe
