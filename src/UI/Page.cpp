@@ -1,57 +1,19 @@
-// Page Implementations
 #include "Page.h"
 #include "../Effects/Effect.h"
-#include "../Config/Config.h"
+#include <vector>
 
-// Effect Page implementation
-void EffectPage::Initialize(HWND parent) {
-    // Initialize effect page with Direct2D rendering
-}
+// 这里我们用一个简单的全局变量来模拟当前选中的效果，实际开发中应由 App 管理
+extern Effect* g_CurrentEffect; 
 
 void EffectPage::Render() {
-    // Render the current effect using Direct2D
-    Renderer::Clear();
+    Renderer::Clear({0.1f, 0.1f, 0.1f, 1.0f}); // 背景深灰色
     
-    // Create and render effect
-    Effect* effect = Effect::Create(currentEffectType);
-    if (effect) {
-        effect->Render(animationPhase, Config::GetBrightness(), 
-                      cpuIndicator, gpuIndicator, ramIndicator, temperatureIndicator);
-        delete effect;
+    // 在这里调用效果渲染逻辑 (简化版)
+    if (g_CurrentEffect) {
+        g_CurrentEffect->Render(0.5, 80.0); // 这里传入固定值用于测试，实际应随时间变化
     }
+
+    // 绘制一个简单的标题栏作为 UI 示意
+    Renderer::FillRect({10, 10, 360, 40}, {0.2f, 0.2f, 0.2f, 1.0f});
+    Renderer::DrawText(L"Effect Preview", 20, 15, 24, {1.0f, 1.0f, 1.0f, 1.0f});
 }
-
-void EffectPage::Update() {
-    // Update animation phase (~60fps)
-    animationPhase += 0.016;
-    
-    // Render effect
-    Render();
-}
-
-void EffectPage::OnResize(int width, int height) {
-    // Handle resize events
-}
-
-const wchar_t* EffectPage::GetTitle() { return L"氛围灯效"; }
-
-// Status Page placeholder
-void StatusPage::Initialize(HWND parent) {}
-void StatusPage::Render() {}
-void StatusPage::Update() {}
-void StatusPage::OnResize(int width, int height) {}
-const wchar_t* StatusPage::GetTitle() { return L"状态指示"; }
-
-// Text Page placeholder
-void TextPage::Initialize(HWND parent) {}
-void TextPage::Render() {}
-void TextPage::Update() {}
-void TextPage::OnResize(int width, int height) {}
-const wchar_t* TextPage::GetTitle() { return L"文字显示"; }
-
-// Settings Page placeholder
-void SettingsPage::Initialize(HWND parent) {}
-void SettingsPage::Render() {}
-void SettingsPage::Update() {}
-void SettingsPage::OnResize(int width, int height) {}
-const wchar_t* SettingsPage::GetTitle() { return L"设置"; }
