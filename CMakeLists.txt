@@ -48,7 +48,7 @@ endif()
 
 # --- Executable Target ---
 add_executable(${PROJECT_NAME} ${SOURCES})
-target_link_libraries(${PROJECT_NAME} PRIVATE ${PLATFORM_LIBS} imgui::imgui)
+target_link_libraries(${PROJECT_NAME} PRIVATE ${PLATFORM_LIBS} imgui)
 
 # Set output directory to build/bin for easy artifact collection
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
