@@ -4,40 +4,34 @@ project(LaunchpadRGBAmbient VERSION 0.2.0)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Source files
-aux_source_directory(src/main.cpp MAIN_SRCS)
-aux_source_directory(src/MIDI MIDI_SRCS)
-aux_source_directory(src/LED LED_SRCS)
-aux_source_directory(src/Effects EFFECTS_SRCS)
-aux_source_directory(src/UI UI_SRCS)
-aux_source_directory(src/Config CONFIG_SRCS)
-aux_source_directory(src/Renderer RENDERER_SRCS)
-
-# Create executable
-add_executable(${PROJECT_NAME}
-    ${MAIN_SRCS}
-    ${MIDI_SRCS}
-    ${LED_SRCS}
-    ${EFFECTS_SRCS}
-    ${UI_SRCS}
-    ${CONFIG_SRCS}
-    ${RENDERER_SRCS}
+# --- 源文件列表 (显式列出，确保大小写与文件名完全一致) ---
+set(SOURCES
+    src/main.cpp
+    src/MIDI/MIDIDevice.cpp
+    src/LED/LEDController.cpp
+    src/Effects/Effect.cpp
+    src/UI/Page.cpp
+    src/Config/Config.cpp
+    src/Renderer/Renderer.cpp
 )
 
-# Link libraries
+# --- 创建可执行文件 ---
+add_executable(${PROJECT_NAME} ${SOURCES})
+
+# --- 链接 Windows 系统库 ---
 target_link_libraries(${PROJECT_NAME}
-    winmm
-    comctl32
-    pdh
-    d2d1
-    dwrite
-    ole32
+    winmm      # MIDI 支持
+    comctl32   # UI 控件
+    pdh        # 系统性能计数器 (CPU/RAM)
+    d2d1       # Direct2D 渲染
+    dwrite     # DirectWrite 文字
+    ole32      # OLE 组件
 )
 
-# Include directories
+# --- 头文件包含路径 ---
 target_include_directories(${PROJECT_NAME} PRIVATE src)
 
-# Compiler flags
+# --- 编译器设置 (MSVC 环境下开启警告) ---
 if(MSVC)
     add_compile_options(/W4 /WX-)
 endif()
