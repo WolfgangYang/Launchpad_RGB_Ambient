@@ -1,7 +1,7 @@
 name: Manual Build (Windows)
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: # Allows manual trigger from the UI
 
 jobs:
   build:
