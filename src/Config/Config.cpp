@@ -1,44 +1,16 @@
-// Configuration Implementation
 #include "Config.h"
-#include <fstream>
-#include <filesystem>
+#include <algorithm>
 
-Config::Language Config::language = Config::English;
+Config::Language Config::language = Config::Language::English;
 int Config::brightness = 80;
 int Config::speed = 50;
 
 void Config::Initialize() {
-    // Load default configuration
+    // 这里以后可以添加从文件读取配置的逻辑
 }
 
-void Config::LoadFromFile(const std::wstring& path) {
-    // Placeholder - implement JSON parsing
-}
-
-void Config::SaveFromFile(const std::wstring& path) {
-    // Placeholder - implement JSON serialization
-}
-
-Config::Language Config::GetLanguage() {
-    return language;
-}
-
-int Config::GetBrightness() {
-    return brightness;
-}
-
-int Config::GetSpeed() {
-    return speed;
-}
-
-void Config::SetLanguage(Language lang) {
-    language = lang;
-}
-
-void Config::SetBrightness(int value) {
-    brightness = std::clamp(value, 0, 100);
-}
-
-void Config::SetSpeed(int value) {
-    speed = std::clamp(value, 0, 100);
-}
+Config::Language Config::GetLanguage() { return language; }
+int Config::GetBrightness() { return brightness; }
+int Config::GetSpeed() { return speed; }
+void Config::SetBrightness(int value) { brightness = std::clamp(value, 0, 100); }
+void Config::SetSpeed(int value) { speed = std::clamp(value, 0, 100); }
