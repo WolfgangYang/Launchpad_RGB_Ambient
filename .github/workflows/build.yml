@@ -1,27 +1,29 @@
-name: Build Windows
+name: Build Windows (Manual)
 
-on: [push, pull_request]
+on:
+  # 允许你在 GitHub 网页上手动点击按钮触发构建
+  workflow_dispatch:
+  # 如果你还是希望在推送时自动运行，可以保留下面这两行（如果不需要请删掉）
+  push:
+    branches: [ main, master ]
 
 jobs:
   build:
     runs-on: windows-latest
     
     steps:
-    # 1. 拉取你的代码
     - name: Checkout code
       uses: actions/checkout@v4
 
-    # 2. 配置 CMake (Windows Runner 自带了 CMake)
     - name: Configure CMake
       run: cmake -B build -DCMAKE_BUILD_TYPE=Release
 
-    # 3. 使用 MSVC 进行编译 (Runner 环境已经配置好了环境，直接调用即可)
     - name: Build Project
       run: cmake --build build --config Release
 
-    # 4. 上传生成的 EXE 文件
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
         name: LaunchpadRGBAmbient
+        # 确保路径与 CMake 生成的目录结构一致
         path: ${{ github.workspace }}/build/Release/LaunchpadRGBAmbient.exe
