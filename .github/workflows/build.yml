@@ -7,19 +7,20 @@ jobs:
     runs-on: windows-latest
     
     steps:
-    - uses: actions/checkout@v3
-    
+    - name: Checkout code
+      uses: actions/checkout@v4  # 使用最新的 v4 版本
+
     - name: Setup MSVC
-      uses: ilammy/msvc-env@v1
-    
+      uses: ilammy/msvc-env@v1 # 确保这个 action 在 GitHub 上是可用的
+
     - name: Configure CMake
       run: cmake -B ${{ github.workspace }}/build -DCMAKE_BUILD_TYPE=Release
-    
-    - name: Build
+
+    - name: Build Project
       run: cmake --build ${{ github.workspace }}/build --config Release
-    
-    - name: Upload artifact
-      uses: actions/upload-artifact@v4
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4  # 必须使用 v4 以解决弃用问题
       with:
         name: LaunchpadRGBAmbient
         path: ${{ github.workspace }}/build/Release/LaunchpadRGBAmbient.exe
