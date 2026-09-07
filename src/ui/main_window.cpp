@@ -306,9 +306,22 @@ LRESULT CALLBACK MainWindow::procedure(HWND window, UINT message, WPARAM wParam,
     }
     case WM_CREATE:
         data->app->initialize(window);
-        data->font = CreateFontW(-15, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
-            DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
-            CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE, L"Microsoft YaHei UI");
+        data->font = CreateFontW(
+    -15,
+    0,
+    0,
+    0,
+    FW_NORMAL,
+    FALSE,
+    FALSE,
+    FALSE,
+    DEFAULT_CHARSET,
+    OUT_DEFAULT_PRECIS,
+    CLIP_DEFAULT_PRECIS,
+    CLEARTYPE_QUALITY,
+    DEFAULT_PITCH | FF_DONTCARE,
+    L"Microsoft YaHei"
+);
         createControls(window, *data);
         applyFont(window, data->font);
         SetTimer(window, 1, 80, nullptr);
