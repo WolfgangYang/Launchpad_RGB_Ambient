@@ -39,6 +39,7 @@ private:
 
     static int launchpadLed(int x, int y);
     static int launchpadFunctionKey(int index);
+    static int launchpadTopFunctionKey(int index);
 };
 
 } // namespace lra

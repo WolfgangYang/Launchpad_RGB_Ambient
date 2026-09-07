@@ -273,7 +273,7 @@ bool MainWindow::registerClass(HINSTANCE instance)
     wc.lpfnWndProc = procedure;
     wc.hInstance = instance;
     wc.lpszClassName = L"LaunchpadRGBAmbientV04";
-    wc.hCursor = LoadCursorW(nullptr, MAKEINTRESOURCEW(IDC_ARROW));
+    wc.hCursor = LoadCursorW(nullptr, MAKEINTRESOURCEW(32512));
     wc.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1);
     return RegisterClassW(&wc) != 0;
 }

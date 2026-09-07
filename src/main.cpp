@@ -1,6 +1,3 @@
-#define UNICODE
-#define _UNICODE
-
 #include "app/application.h"
 #include "ui/main_window.h"
 
