@@ -13,18 +13,20 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4 # 已升级到 v4
+      uses: actions/checkout@v4
 
     - name: Configure CMake
+      # 显式指定构建类型，确保输出目录是 Release
       run: cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.config }}
 
     - name: Build with MSVC
+      # 使用 --config 指定配置，这对于 Visual Studio 生成器至关重要
       run: cmake --build build --config ${{ matrix.config }}
 
     - name: Upload Artifact
-      uses: actions/upload-artifact@v4 # 已升级到 v4，解决弃用报错问题
+      uses: actions/upload-artifact@v4
       with:
         name: Launchpad-RGB-Ambient-Windows-${{ matrix.config }}
-        # 使用通配符匹配所有 Release 文件夹下的 exe，确保路径兼容性
+        # 这里的路径必须与 CMakeLists.txt 中的 CMAKE_RUNTIME_OUTPUT_DIRECTORY 完全一致
         path: |
-          **/bin/Release/*.exe
+          bin/Release/*.exe
