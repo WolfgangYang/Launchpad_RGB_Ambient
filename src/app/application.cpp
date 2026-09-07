@@ -89,7 +89,7 @@ void Application::render()
         return;
     }
 
-    effects_.render(state_, frame_);
+    effects_.render(state_, frame_, functionKeys_);
 
     for (int y = 0; y < 8; ++y) {
         for (int x = 0; x < 8; ++x) {
@@ -99,6 +99,24 @@ void Application::render()
                 toMidiValue(rgb.g * 63.0),
                 toMidiValue(rgb.b * 63.0));
         }
+    }
+
+    // Right-side keys (top-to-bottom).
+    for (int i = 0; i < 8; ++i) {
+        const Rgb& rgb = functionKeys_[i];
+        midi_.setFunctionKey(i,
+            toMidiValue(rgb.r * 63.0),
+            toMidiValue(rgb.g * 63.0),
+            toMidiValue(rgb.b * 63.0));
+    }
+
+    // Top-side keys (left-to-right).
+    for (int i = 0; i < 8; ++i) {
+        const Rgb& rgb = functionKeys_[8 + i];
+        midi_.setTopFunctionKey(i,
+            toMidiValue(rgb.r * 63.0),
+            toMidiValue(rgb.g * 63.0),
+            toMidiValue(rgb.b * 63.0));
     }
 }
 

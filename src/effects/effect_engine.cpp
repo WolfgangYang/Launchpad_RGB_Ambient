@@ -5,7 +5,7 @@
 
 namespace lra {
 
-void EffectEngine::render(AppState& state, LedFrame& frame) const
+void EffectEngine::render(AppState& state, LedFrame& frame, FunctionKeyFrame& functionKeys) const
 {
     if (!state.effectRunning) {
         return;
@@ -13,6 +13,7 @@ void EffectEngine::render(AppState& state, LedFrame& frame) const
 
     renderBase(state, frame);
     renderIndicators(state, frame);
+    renderFunctionKeys(frame, functionKeys);
 
     const double speed = state.speed / 20.0;
     state.animationPhase += 0.035 * (0.2 + speed);
@@ -104,6 +105,22 @@ void EffectEngine::renderIndicators(const AppState& state, LedFrame& frame) cons
 
     if (state.temperatureIndicator) {
         frame[7][7] = {1.0, 0.1, 0.0};
+    }
+}
+
+
+void EffectEngine::renderFunctionKeys(const LedFrame& frame, FunctionKeyFrame& functionKeys) const
+{
+    // Right-side keys: top-to-bottom, each mirrors the rightmost RGB pad
+    // in the corresponding row.
+    for (int i = 0; i < 8; ++i) {
+        functionKeys[i] = frame[i][7];
+    }
+
+    // Top-side keys: left-to-right, each mirrors the top RGB pad
+    // in the corresponding column.
+    for (int i = 0; i < 8; ++i) {
+        functionKeys[8 + i] = frame[0][i];
     }
 }
 

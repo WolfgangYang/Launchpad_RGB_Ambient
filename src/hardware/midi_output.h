@@ -27,12 +27,15 @@ public:
 
     bool sendSysEx(const BYTE* data, DWORD length);
     bool setLed(int x, int y, BYTE red, BYTE green, BYTE blue);
+    bool setFunctionKey(int index, BYTE red, BYTE green, BYTE blue);
+    bool setTopFunctionKey(int index, BYTE red, BYTE green, BYTE blue);
     void clearGrid();
 
 private:
     HMIDIOUT device_ = nullptr;
 
     static int launchpadLed(int x, int y);
+    static int launchpadFunctionKey(int index);
 };
 
 } // namespace lra

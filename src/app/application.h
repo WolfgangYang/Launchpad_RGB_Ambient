@@ -35,6 +35,7 @@ private:
     EffectEngine effects_;
     SystemMonitor monitor_;
     LedFrame frame_{};
+    FunctionKeyFrame functionKeys_{};
 };
 
 } // namespace lra

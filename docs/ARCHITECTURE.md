@@ -23,9 +23,10 @@
    +------+------+      +-------+-------+      +-------------+
           |                     |
           v                     v
-     LED frame             MIDI SysEx
-          |
-          +--------------------> Launchpad
+  RGB frame + 8 side-key   MIDI SysEx
+      RGB values                |
+          |                     v
+          +----------------> Launchpad
 ```
 
 ## Dependency direction
@@ -38,35 +39,15 @@
 - `app` composes the modules.
 - `ui` talks to `app`; it does not implement effects or MIDI protocol.
 
-This makes later changes safer. For example, adding a new effect should normally touch only `effects/` plus the effect selection enum/UI binding.
+## Right-side function keys
 
-## Planned extension points
+The effect engine produces eight additional RGB values, one for each right-side function/scene key. The first implementation mirrors `frame[row][7]`, so every effect and row-based indicator automatically stays synchronized.
 
-1. `EffectEngine`
-   - new effect classes
-   - palette/color configuration
-   - per-effect parameters
+`MidiOutput` maps these keys to the Launchpad MK2 IDs `19, 29, ..., 89` using the same RGB SysEx command family as the grid.
 
-2. `MidiOutput`
-   - Launchpad model abstraction
-   - batched SysEx/frame transmission
-   - device capability detection
+This is intentionally kept in the hardware layer so the effect engine does not need to know the Launchpad protocol.
 
-3. `SystemMonitor`
-   - real GPU usage provider
-   - real temperature provider
-   - provider fallback/error state
 
-4. `Application`
-   - profiles/presets
-   - persistent settings
-   - update/render scheduling
+## Launchpad MK2 function keys
 
-5. `MainWindow`
-   - grouped controls
-   - selected-state visualization
-   - richer configuration panels
-
-## Important design rule
-
-The LED effect should produce a frame of RGB values. The hardware layer should be responsible for converting that frame into device-specific MIDI messages. This prevents the animation logic from becoming tied to the Launchpad protocol.
+The 8 right-side and 8 top-side round keys are rendered as part of the same effect frame. Right keys mirror the corresponding row; top keys mirror the corresponding column. MK2 top controllers are 104-111, and right-side controllers are 89,79,...,19.

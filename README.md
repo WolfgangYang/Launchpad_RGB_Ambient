@@ -1,20 +1,13 @@
-# Launchpad RGB Ambient v0.2
+# Launchpad RGB Ambient v0.3
 
 Windows native C++17 application for controlling an RGB Launchpad over MIDI.
 
-## Goals of v0.2
+## v0.3 focus
 
-v0.2 restructures the original v0.1 single-file prototype into independent modules:
+v0.3 keeps the verified v0.3 behavior and adds two foundation changes:
 
-- `app/` — application orchestration and state transitions
-- `core/` — shared data types and color conversion
-- `effects/` — LED animation generation
-- `hardware/` — MIDI / Launchpad output
-- `localization/` — language selection and UI strings
-- `monitor/` — CPU/RAM/GPU/temperature data sources
-- `ui/` — Win32 window and controls
-
-The module boundaries are intentional: effects do not know about Win32 controls, and the UI does not know the Launchpad SysEx protocol.
+- CMake is now the primary build system.
+- The eight right-side Launchpad MK2 function/scene keys are included in the effect render and mirror the corresponding row's rightmost RGB pad.
 
 ## Current implementation
 
@@ -25,40 +18,29 @@ The module boundaries are intentional: effects do not know about Win32 controls,
 - CPU and RAM monitoring
 - Separate GPU and temperature indicator paths (data sources are not faked yet)
 - Chinese / English UI based on Windows UI language
-- GitHub Actions Windows/MSVC build
+- Right-side function keys synchronized with the RGB effects
+- CMake + GitHub Actions Windows/MSVC build
 
 ## Build on GitHub
 
-The repository includes:
+The repository includes `.github/workflows/build.yml` and `CMakeLists.txt`.
 
-`.github/workflows/build.yml`
-
-The workflow builds every `.cpp` file with MSVC and packages the resulting EXE as a workflow artifact.
-
-No third-party runtime or package manager is required.
+GitHub Actions configures a Visual Studio 2022 x64 CMake build and uploads the Release EXE as an artifact.
 
 ## Local build
 
 Open a **Developer Command Prompt for Visual Studio** and run:
 
 ```bat
-cl /nologo /O2 /std:c++17 /EHsc /utf-8 ^
-  src\main.cpp ^
-  src\app\application.cpp ^
-  src\core\color.cpp ^
-  src\effects\effect_engine.cpp ^
-  src\hardware\midi_output.cpp ^
-  src\localization\localization.cpp ^
-  src\monitor\system_monitor.cpp ^
-  src\ui\main_window.cpp ^
-  /link user32.lib gdi32.lib winmm.lib comctl32.lib pdh.lib ^
-  /SUBSYSTEM:WINDOWS /OUT:Launchpad_RGB_Ambient_v0.2.exe
+cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+cmake --build build --config Release
 ```
 
 ## Architecture
 
 See `docs/ARCHITECTURE.md`.
 
-## Scope note
 
-The current renderer intentionally keeps the original v0.1 visual behavior close to the prototype. The point of this version is to establish a clean foundation before adding more effects, profiles, mappings, hardware-specific monitoring and a richer UI.
+## Launchpad MK2 function keys
+
+The 8 right-side and 8 top-side round keys are rendered as part of the same effect frame. Right keys mirror the corresponding row; top keys mirror the corresponding column. MK2 top controllers are 104-111, and right-side controllers are 89,79,...,19.
