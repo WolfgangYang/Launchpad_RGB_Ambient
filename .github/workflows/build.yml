@@ -1,28 +1,30 @@
-name: Manual Build (Windows)
+name: Manual Windows Build
 
 on:
-  workflow_dispatch: # Allows manual trigger from the UI
+  workflow_dispatch: # 允许在 GitHub Actions 页面手动点击运行
 
 jobs:
   build:
     runs-on: windows-latest
 
+    strategy:
+      matrix:
+        config: [Release]
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-      - name: Configure CMake
-        run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Release
+    - name: Configure CMake
+      run: cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.config }}
 
-      - name: Build with MSVC
-        run: cmake --build build --config Release
+    - name: Build with MSVC
+      run: cmake --build build --config ${{ matrix.config }}
 
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: Launchpad-RGB-Ambient-v0.2-Windows
-          path: |
-            build/bin/*.exe
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: Launchpad-RGB-Ambient-Windows-${{ matrix.config }}
+        # 使用通配符匹配所有 Release 文件夹下的 exe，解决路径空格问题
+        path: |
+          **/bin/Release/*.exe
