@@ -1,32 +1,42 @@
-name: Manual Windows Build
+name: Build Windows EXE
 
 on:
-  workflow_dispatch: # 允许在 GitHub Actions 页面手动点击运行
+  workflow_dispatch:
+  push:
+    branches: [ main, "0.2" ]
+  pull_request:
+    branches: [ main, "0.2" ]
 
 jobs:
   build:
     runs-on: windows-latest
 
-    strategy:
-      matrix:
-        config: [Release]
-
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: Configure CMake
-      # 显式指定构建类型，确保输出目录是 Release
-      run: cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.config }}
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
 
-    - name: Build with MSVC
-      # 使用 --config 指定配置，这对于 Visual Studio 生成器至关重要
-      run: cmake --build build --config ${{ matrix.config }}
+      - name: Build
+        shell: cmd
+        run: |
+          cl /nologo /O2 /std:c++17 /EHsc /utf-8 ^
+            src\main.cpp ^
+            src\app\application.cpp ^
+            src\core\color.cpp ^
+            src\effects\effect_engine.cpp ^
+            src\hardware\midi_output.cpp ^
+            src\localization\localization.cpp ^
+            src\monitor\system_monitor.cpp ^
+            src\ui\main_window.cpp ^
+            /link user32.lib gdi32.lib winmm.lib comctl32.lib pdh.lib ^
+            /SUBSYSTEM:WINDOWS /OUT:Launchpad_RGB_Ambient_v0.2.exe
 
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: Launchpad-RGB-Ambient-Windows-${{ matrix.config }}
-        # 这里的路径必须与 CMakeLists.txt 中的 CMAKE_RUNTIME_OUTPUT_DIRECTORY 完全一致
-        path: |
-          bin/Release/*.exe
+      - name: Upload EXE
+        uses: actions/upload-artifact@v4
+        with:
+          name: Launchpad_RGB_Ambient_v0.2
+          path: Launchpad_RGB_Ambient_v0.2.exe
