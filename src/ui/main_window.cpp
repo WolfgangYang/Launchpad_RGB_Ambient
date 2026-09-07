@@ -208,64 +208,209 @@ void drawPreview(HDC dc, const RECT& client, const Application& app, Language la
     const int panelH = client.bottom - panelY - 18;
 
     HBRUSH bg = CreateSolidBrush(RGB(245, 245, 245));
-    RECT panel{panelX, panelY, panelX + panelW, panelY + panelH};
+
+    RECT panel{
+        panelX,
+        panelY,
+        panelX + panelW,
+        panelY + panelH
+    };
+
     FillRect(dc, &panel, bg);
     DeleteObject(bg);
-    FrameRect(dc, &panel, static_cast<HBRUSH>(GetStockObject(GRAY_BRUSH)));
+
+    FrameRect(
+        dc,
+        &panel,
+        static_cast<HBRUSH>(GetStockObject(GRAY_BRUSH))
+    );
 
     SetBkMode(dc, TRANSPARENT);
-    const std::wstring title = text(language, "preview");
-    TextOutW(dc, panelX + 18, panelY + 15, title.c_str(), static_cast<int>(title.size()));
 
-    const int gridX = panelX + 72;
-    const int gridY = panelY + 72;
-    const int size = 34;
-    const int gap = 4;
+    const std::wstring title =
+        text(language, "preview");
+
+    TextOutW(
+        dc,
+        panelX + 18,
+        panelY + 15,
+        title.c_str(),
+        static_cast<int>(title.size())
+    );
+
+    /*
+        Preview layout:
+
+             T T T T T T T T
+             ┌──────────────┐
+             │  8 x 8 grid  │ R
+             │              │ R
+             │              │ R
+             └──────────────┘ R
+                              R
+
+        The complete Launchpad area is calculated first so
+        the right-side keys can never extend outside the panel.
+    */
+
+    const int margin = 28;
+    const int topKeyHeight = 20;
+    const int rightKeyWidth = 20;
+    const int gap = 3;
+
+    const int availableWidth =
+        panelW
+        - margin * 2
+        - rightKeyWidth
+        - gap;
+
+    const int availableHeight =
+        panelH
+        - 85
+        - margin;
+
+    const int cellByWidth =
+        (availableWidth - gap * 7) / 8;
+
+    const int cellByHeight =
+        (availableHeight - topKeyHeight - gap * 8) / 8;
+
+    const int cell =
+        std::max(12, std::min(cellByWidth, cellByHeight));
+
+    const int gridSize =
+        cell * 8 + gap * 7;
+
+    const int totalWidth =
+        gridSize + gap + rightKeyWidth;
+
+    const int totalHeight =
+        topKeyHeight + gap + gridSize;
+
+    const int baseX =
+        panelX + (panelW - totalWidth) / 2;
+
+    const int baseY =
+        panelY + 58 +
+        (panelH - 58 - totalHeight) / 2;
+
+    const int gridX = baseX;
+    const int gridY =
+        baseY + topKeyHeight + gap;
 
     const auto& frame = app.frame();
+
+    // Main 8 x 8 grid.
     for (int y = 0; y < 8; ++y) {
         for (int x = 0; x < 8; ++x) {
             const Rgb& c = frame[y][x];
+
             HBRUSH brush = CreateSolidBrush(RGB(
                 static_cast<int>(c.r * 255.0),
                 static_cast<int>(c.g * 255.0),
-                static_cast<int>(c.b * 255.0)));
-            RECT r{gridX + x * (size + gap), gridY + y * (size + gap),
-                   gridX + x * (size + gap) + size, gridY + y * (size + gap) + size};
+                static_cast<int>(c.b * 255.0)
+            ));
+
+            RECT r{
+                gridX + x * (cell + gap),
+                gridY + y * (cell + gap),
+                gridX + x * (cell + gap) + cell,
+                gridY + y * (cell + gap) + cell
+            };
+
             FillRect(dc, &r, brush);
             DeleteObject(brush);
-            FrameRect(dc, &r, static_cast<HBRUSH>(GetStockObject(GRAY_BRUSH)));
+
+            FrameRect(
+                dc,
+                &r,
+                static_cast<HBRUSH>(
+                    GetStockObject(GRAY_BRUSH)
+                )
+            );
         }
     }
 
     const auto& keys = app.functionKeys();
-    const int rightX = gridX + 8 * (size + gap) + 15;
-    const int topY = gridY - 45;
+
+    // Top 8 function keys.
     for (int i = 0; i < 8; ++i) {
         const Rgb& c = keys[8 + i];
+
         HBRUSH brush = CreateSolidBrush(RGB(
-            static_cast<int>(c.r * 255.0), static_cast<int>(c.g * 255.0), static_cast<int>(c.b * 255.0)));
-        RECT r{gridX + i * (size + gap) + 3, topY, gridX + i * (size + gap) + size - 3, topY + 28};
+            static_cast<int>(c.r * 255.0),
+            static_cast<int>(c.g * 255.0),
+            static_cast<int>(c.b * 255.0)
+        ));
+
+        const int x =
+            gridX + i * (cell + gap);
+
+        RECT r{
+            x,
+            baseY,
+            x + cell,
+            baseY + topKeyHeight
+        };
+
         FillRect(dc, &r, brush);
         DeleteObject(brush);
-        FrameRect(dc, &r, static_cast<HBRUSH>(GetStockObject(GRAY_BRUSH)));
+
+        FrameRect(
+            dc,
+            &r,
+            static_cast<HBRUSH>(
+                GetStockObject(GRAY_BRUSH)
+            )
+        );
     }
+
+    // Right 8 function keys.
+    const int rightX =
+        gridX + gridSize + gap;
 
     for (int i = 0; i < 8; ++i) {
         const Rgb& c = keys[i];
+
         HBRUSH brush = CreateSolidBrush(RGB(
-            static_cast<int>(c.r * 255.0), static_cast<int>(c.g * 255.0), static_cast<int>(c.b * 255.0)));
-        RECT r{rightX, gridY + i * (size + gap) + 3, rightX + 28, gridY + i * (size + gap) + size - 3};
+            static_cast<int>(c.r * 255.0),
+            static_cast<int>(c.g * 255.0),
+            static_cast<int>(c.b * 255.0)
+        ));
+
+        const int y =
+            gridY + i * (cell + gap);
+
+        RECT r{
+            rightX,
+            y,
+            rightX + rightKeyWidth,
+            y + cell
+        };
+
         FillRect(dc, &r, brush);
         DeleteObject(brush);
-        FrameRect(dc, &r, static_cast<HBRUSH>(GetStockObject(GRAY_BRUSH)));
+
+        FrameRect(
+            dc,
+            &r,
+            static_cast<HBRUSH>(
+                GetStockObject(GRAY_BRUSH)
+            )
+        );
     }
 
-    std::wstring hint = text(language, "preview_hint");
-    TextOutW(dc, panelX + 18, panel.bottom - 35, hint.c_str(), static_cast<int>(hint.size()));
-}
+    const std::wstring hint =
+        text(language, "preview_hint");
 
-} // namespace
+    TextOutW(
+        dc,
+        panelX + 18,
+        panel.bottom - 35,
+        hint.c_str(),
+        static_cast<int>(hint.size())
+    );
+}
 
 bool MainWindow::registerClass(HINSTANCE instance)
 {
