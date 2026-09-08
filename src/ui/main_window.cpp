@@ -176,6 +176,26 @@ void setPageVisibility(WindowData& data)
             i == data.tab ? SW_SHOW : SW_HIDE
         );
     }
+
+    // Explicitly repaint the page area after a tab switch. Without
+    // this, hidden child controls can leave their old pixels behind
+    // until some unrelated repaint occurs.
+    RECT pageRect{
+        15,
+        70,
+        465,
+        595
+    };
+
+    RedrawWindow(
+        GetParent(data.effectPage),
+        &pageRect,
+        nullptr,
+        RDW_ERASE
+            | RDW_INVALIDATE
+            | RDW_ALLCHILDREN
+            | RDW_UPDATENOW
+    );
 }
 
 void selectTab(WindowData& data, int tab)
@@ -203,7 +223,7 @@ bool isUsablePaletteColor(int index)
         + 0.7152 * c.g
         + 0.0722 * c.b;
 
-    return luminance >= 0.12;
+    return luminance >= 0.18;
 }
 
 void createEffectPage(HWND window, WindowData& data)
@@ -1013,6 +1033,14 @@ HWND MainWindow::create(
         return nullptr;
     }
 
+    // Set the caption explicitly as well as passing it to CreateWindowW.
+    // This keeps the title stable even if another initialization path
+    // changes the window text later.
+    SetWindowTextW(
+        window,
+        windowTitle()
+    );
+
     ShowWindow(
         window,
         showCommand
@@ -1314,6 +1342,12 @@ LRESULT CALLBACK MainWindow::procedure(
                     LOWORD(wParam)
                     - ID_PALETTE_BASE
                 );
+
+                // Palette buttons are owner-drawn buttons. A mouse click
+                // gives them keyboard focus, which makes Windows draw a
+                // focus rectangle. Move focus back to the page so the
+                // selected color is indicated only by our own border.
+                SetFocus(data->effectPage);
 
                 InvalidateRect(
                     window,
