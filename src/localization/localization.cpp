@@ -5,7 +5,7 @@
 namespace lra {
 
 namespace {
-constexpr wchar_t kTitle[] = L"Launchpad RGB Ambient v0.4";
+constexpr wchar_t kTitle[] = L"Launchpad RGB Ambient — v0.4.1";
 }
 
 void detectLanguage(AppState& state)

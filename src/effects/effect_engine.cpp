@@ -43,7 +43,7 @@ void EffectEngine::renderBase(const AppState& state, LedFrame& frame) const
                 const Rgb base = selectedPaletteRgb(static_cast<std::uint8_t>(state.paletteIndex));
                 const double hueOffset = std::atan2(base.g - base.b, base.r + 1e-6) / (2.0 * 3.141592653589793);
                 rgb = hsvToRgb(
-                    x / 8.0 + y / 16.0 + state.animationPhase * 0.08 + hueOffset * 0.15,
+                    x / 8.0 + y / 16.0 + state.animationPhase * 0.11 + hueOffset * 0.15,
                     0.9, brightness);
                 break;
             }

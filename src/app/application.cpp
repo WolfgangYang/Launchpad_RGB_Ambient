@@ -11,7 +11,7 @@ bool Application::initialize(HWND window)
 {
     window_ = window;
     detectLanguage(state_);
-    state_.effectRunning = true;
+    state_.effectRunning = false;
     monitor_.initialize();
     return true;
 }
@@ -134,6 +134,18 @@ void Application::toggleTemperature()
 void Application::render()
 {
     effects_.render(state_, frame_, functionKeys_);
+
+    if (!state_.effectRunning) {
+        for (auto& row : frame_) {
+            for (auto& pixel : row) {
+                pixel = {};
+            }
+        }
+
+        for (auto& key : functionKeys_) {
+            key = {};
+        }
+    }
 
     if (window_) {
         InvalidateRect(window_, nullptr, FALSE);

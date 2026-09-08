@@ -32,6 +32,7 @@ enum ControlId {
     ID_TAB_TEXT,
     ID_TAB_DEVICE,
     ID_TAB_SETTINGS,
+    ID_TABS = 205,
     ID_PLACEHOLDER = 250,
     ID_PALETTE_BASE = 400
 };
@@ -48,6 +49,7 @@ struct WindowData {
     HWND devicePage = nullptr;
     HWND settingsPage = nullptr;
     HFONT font = nullptr;
+    HWND tabControl = nullptr;
     int tab = 0;
 };
 
@@ -179,7 +181,29 @@ void setPageVisibility(WindowData& data)
 void selectTab(WindowData& data, int tab)
 {
     data.tab = std::clamp(tab, 0, 4);
+
+    if (data.tabControl) {
+        TabCtrl_SetCurSel(data.tabControl, data.tab);
+    }
+
     setPageVisibility(data);
+}
+
+bool isUsablePaletteColor(int index)
+{
+    const Rgb& c =
+        launchpadPalette(
+            static_cast<std::uint8_t>(index)
+        ).rgb;
+
+    // Remove only colors that are effectively too dark to be useful
+    // on the Launchpad. Keep medium-dark colors that are still visible.
+    const double luminance =
+        0.2126 * c.r
+        + 0.7152 * c.g
+        + 0.0722 * c.b;
+
+    return luminance >= 0.12;
 }
 
 void createEffectPage(HWND window, WindowData& data)
@@ -450,9 +474,16 @@ void createEffectPage(HWND window, WindowData& data)
     const int cell = 22;
     const int gap = 2;
 
+    int displayIndex = 0;
+
     for (int i = 0; i < 128; ++i) {
-        const int col = i % 16;
-        const int row = i / 16;
+        if (!isUsablePaletteColor(i)) {
+            continue;
+        }
+
+        const int col = displayIndex % 16;
+        const int row = displayIndex / 16;
+        ++displayIndex;
 
         HWND swatch = CreateWindowW(
             L"BUTTON",
@@ -521,14 +552,16 @@ void createPlaceholderPage(
 
     enablePageMessageForwarding(*target);
 
-    label(
-        *target,
-        text(data.app->state().language, key),
-        20,
-        35,
-        400,
-        80
-    );
+    if (index != 3) {
+        label(
+            *target,
+            text(data.app->state().language, key),
+            20,
+            35,
+            400,
+            80
+        );
+    }
 }
 
 void createDevicePage(WindowData& data)
@@ -558,55 +591,36 @@ void createControls(HWND window, WindowData& data)
 {
     const auto& state = data.app->state();
 
-    button(
+    data.tabControl = CreateWindowW(
+        WC_TABCONTROLW,
+        nullptr,
+        WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | TCS_TABS,
+        15,
+        15,
+        426,
+        32,
         window,
-        ID_TAB_EFFECTS,
+        reinterpret_cast<HMENU>(
+            static_cast<INT_PTR>(ID_TABS)
+        ),
+        GetModuleHandleW(nullptr),
+        nullptr
+    );
+
+    const LPCWSTR tabLabels[] = {
         text(state.language, "tab_effects"),
-        15,
-        15,
-        82,
-        32
-    );
-
-    button(
-        window,
-        ID_TAB_SYSTEM,
         text(state.language, "tab_system"),
-        101,
-        15,
-        82,
-        32
-    );
-
-    button(
-        window,
-        ID_TAB_TEXT,
         text(state.language, "tab_text"),
-        187,
-        15,
-        82,
-        32
-    );
-
-    button(
-        window,
-        ID_TAB_DEVICE,
         text(state.language, "tab_device"),
-        273,
-        15,
-        82,
-        32
-    );
+        text(state.language, "tab_settings")
+    };
 
-    button(
-        window,
-        ID_TAB_SETTINGS,
-        text(state.language, "tab_settings"),
-        359,
-        15,
-        82,
-        32
-    );
+    for (int i = 0; i < 5; ++i) {
+        TCITEMW item{};
+        item.mask = TCIF_TEXT;
+        item.pszText = const_cast<LPWSTR>(tabLabels[i]);
+        TabCtrl_InsertItem(data.tabControl, i, &item);
+    }
 
     createEffectPage(window, data);
 
@@ -651,7 +665,8 @@ void drawPreview(
     HDC dc,
     const RECT& client,
     const Application& app,
-    Language language)
+    Language language,
+    HFONT font)
 {
     const int panelX = 485;
     const int panelY = 70;
@@ -689,6 +704,21 @@ void drawPreview(
         dc,
         TRANSPARENT
     );
+
+    HFONT oldFont = nullptr;
+
+    if (font) {
+        oldFont = static_cast<HFONT>(
+            SelectObject(dc, font)
+        );
+    }
+
+    if (!app.state().effectRunning) {
+        if (oldFont) {
+            SelectObject(dc, oldFont);
+        }
+        return;
+    }
 
     const std::wstring title =
         text(language, "preview");
@@ -921,6 +951,10 @@ void drawPreview(
         hint.c_str(),
         static_cast<int>(hint.size())
     );
+
+    if (oldFont) {
+        SelectObject(dc, oldFont);
+    }
 }
 
 } // namespace
@@ -963,7 +997,8 @@ HWND MainWindow::create(
         WS_OVERLAPPED
             | WS_CAPTION
             | WS_SYSMENU
-            | WS_MINIMIZEBOX,
+            | WS_MINIMIZEBOX
+            | WS_CLIPCHILDREN,
         CW_USEDEFAULT,
         CW_USEDEFAULT,
         930,
@@ -1168,6 +1203,25 @@ LRESULT CALLBACK MainWindow::procedure(
         break;
     }
 
+    case WM_NOTIFY: {
+        auto* header =
+            reinterpret_cast<NMHDR*>(lParam);
+
+        if (
+            header
+            && header->idFrom == ID_TABS
+            && header->code == TCN_SELCHANGE
+        ) {
+            const int tab =
+                TabCtrl_GetCurSel(data->tabControl);
+
+            selectTab(*data, tab);
+            return 0;
+        }
+
+        break;
+    }
+
     case WM_COMMAND:
         switch (LOWORD(wParam)) {
 
@@ -1336,7 +1390,8 @@ LRESULT CALLBACK MainWindow::procedure(
             dc,
             client,
             *data->app,
-            data->app->state().language
+            data->app->state().language,
+            data->font
         );
 
         EndPaint(

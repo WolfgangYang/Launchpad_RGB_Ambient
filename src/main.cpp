@@ -16,7 +16,7 @@ int WINAPI wWinMain(
 {
     INITCOMMONCONTROLSEX controls{
         sizeof(INITCOMMONCONTROLSEX),
-        ICC_BAR_CLASSES
+        ICC_BAR_CLASSES | ICC_TAB_CLASSES
     };
     InitCommonControlsEx(&controls);
 
