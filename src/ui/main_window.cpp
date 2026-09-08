@@ -109,6 +109,41 @@ LRESULT CALLBACK pageProcedure(
     WPARAM wParam,
     LPARAM lParam)
 {
+    // Each page owns the area where its controls are drawn.
+    // Explicitly paint the page background so pixels left by a
+    // previous layout/page cannot remain visible underneath the
+    // current controls.
+    if (message == WM_ERASEBKGND) {
+        RECT client{};
+        GetClientRect(window, &client);
+
+        HBRUSH brush = static_cast<HBRUSH>(
+            GetStockObject(WHITE_BRUSH)
+        );
+
+        FillRect(
+            reinterpret_cast<HDC>(wParam),
+            &client,
+            brush
+        );
+
+        return 1;
+    }
+
+    if (message == WM_PAINT) {
+        PAINTSTRUCT ps{};
+        HDC dc = BeginPaint(window, &ps);
+
+        HBRUSH brush = static_cast<HBRUSH>(
+            GetStockObject(WHITE_BRUSH)
+        );
+
+        FillRect(dc, &ps.rcPaint, brush);
+        EndPaint(window, &ps);
+
+        return 0;
+    }
+
     if (
         message == WM_COMMAND ||
         message == WM_HSCROLL ||
@@ -253,12 +288,67 @@ void createEffectPage(HWND window, WindowData& data)
         data.effectPage
     );
 
+    label(
+        data.effectPage,
+        text(state.language, "midi"),
+        5,
+        8,
+        45,
+        22
+    );
+
+    data.portCombo = CreateWindowW(
+        L"COMBOBOX",
+        nullptr,
+        WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST,
+        55,
+        5,
+        330,
+        180,
+        data.effectPage,
+        reinterpret_cast<HMENU>(
+            static_cast<INT_PTR>(ID_PORT)
+        ),
+        GetModuleHandleW(nullptr),
+        nullptr
+    );
+
+    button(
+        data.effectPage,
+        ID_REFRESH,
+        text(state.language, "refresh"),
+        5,
+        38,
+        92,
+        30
+    );
+
+    button(
+        data.effectPage,
+        ID_CONNECT,
+        text(state.language, "connect"),
+        103,
+        38,
+        92,
+        30
+    );
+
+    data.status = label(
+        data.effectPage,
+        text(state.language, "notconnected"),
+        205,
+        43,
+        180,
+        22,
+        ID_STATUS
+    );
+
     button(
         data.effectPage,
         ID_RAINBOW,
         text(state.language, "rainbow"),
         5,
-        8,
+        78,
         62,
         30
     );
@@ -268,7 +358,7 @@ void createEffectPage(HWND window, WindowData& data)
         ID_BREATHE,
         text(state.language, "breathe"),
         72,
-        8,
+        78,
         62,
         30
     );
@@ -278,7 +368,7 @@ void createEffectPage(HWND window, WindowData& data)
         ID_WAVE,
         text(state.language, "wave"),
         139,
-        8,
+        78,
         62,
         30
     );
@@ -288,7 +378,7 @@ void createEffectPage(HWND window, WindowData& data)
         ID_STARS,
         text(state.language, "stars"),
         206,
-        8,
+        78,
         62,
         30
     );
@@ -298,8 +388,57 @@ void createEffectPage(HWND window, WindowData& data)
         ID_SOLID,
         text(state.language, "solid"),
         273,
-        8,
+        78,
         62,
+        30
+    );
+
+    label(
+        data.effectPage,
+        text(state.language, "monitor"),
+        5,
+        118,
+        75,
+        22
+    );
+
+    button(
+        data.effectPage,
+        ID_CPU,
+        text(state.language, "cpu"),
+        82,
+        114,
+        58,
+        30
+    );
+
+    button(
+        data.effectPage,
+        ID_GPU,
+        text(state.language, "gpu"),
+        145,
+        114,
+        58,
+        30
+    );
+
+    button(
+        data.effectPage,
+        ID_RAM,
+        text(state.language, "ram"),
+        208,
+        114,
+        58,
+        30
+    );
+
+    button(
+        data.effectPage,
+        ID_TEMP,
+        text(state.language, "temp"),
+        271,
+        114,
+        58,
         30
     );
 
@@ -307,7 +446,7 @@ void createEffectPage(HWND window, WindowData& data)
         data.effectPage,
         text(state.language, "brightness"),
         5,
-        88,
+        158,
         70,
         22
     );
@@ -317,7 +456,7 @@ void createEffectPage(HWND window, WindowData& data)
         nullptr,
         WS_CHILD | WS_VISIBLE,
         78,
-        83,
+        153,
         305,
         30,
         data.effectPage,
@@ -346,7 +485,7 @@ void createEffectPage(HWND window, WindowData& data)
         data.effectPage,
         text(state.language, "speed"),
         5,
-        128,
+        198,
         70,
         22
     );
@@ -356,7 +495,7 @@ void createEffectPage(HWND window, WindowData& data)
         nullptr,
         WS_CHILD | WS_VISIBLE,
         78,
-        123,
+        193,
         305,
         30,
         data.effectPage,
@@ -385,22 +524,13 @@ void createEffectPage(HWND window, WindowData& data)
         data.effectPage,
         text(state.language, "palette"),
         5,
-        168,
+        238,
         230,
         22
     );
 
-    label(
-        data.effectPage,
-        text(state.language, "palette_note"),
-        190,
-        168,
-        255,
-        22
-    );
-
     const int startX = 5;
-    const int startY = 196;
+    const int startY = 266;
     const int cell = 22;
     const int gap = 2;
 
@@ -494,94 +624,6 @@ void createPlaceholderPage(
     }
 }
 
-void createSystemPage(HWND window, WindowData& data)
-{
-    const auto& state = data.app->state();
-
-    data.systemPage = CreateWindowW(
-        L"STATIC",
-        nullptr,
-        WS_CHILD | WS_VISIBLE | SS_WHITERECT,
-        15,
-        70,
-        450,
-        525,
-        window,
-        nullptr,
-        GetModuleHandleW(nullptr),
-        nullptr
-    );
-
-    enablePageMessageForwarding(data.systemPage);
-
-    label(
-        data.systemPage,
-        text(state.language, "midi"),
-        5,
-        8,
-        45,
-        22
-    );
-
-    data.portCombo = CreateWindowW(
-        L"COMBOBOX",
-        nullptr,
-        WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST,
-        55,
-        5,
-        330,
-        180,
-        data.systemPage,
-        reinterpret_cast<HMENU>(static_cast<INT_PTR>(ID_PORT)),
-        GetModuleHandleW(nullptr),
-        nullptr
-    );
-
-    button(
-        data.systemPage,
-        ID_REFRESH,
-        text(state.language, "refresh"),
-        5,
-        38,
-        92,
-        30
-    );
-
-    button(
-        data.systemPage,
-        ID_CONNECT,
-        text(state.language, "connect"),
-        103,
-        38,
-        92,
-        30
-    );
-
-    data.status = label(
-        data.systemPage,
-        text(state.language, "notconnected"),
-        205,
-        43,
-        180,
-        22,
-        ID_STATUS
-    );
-
-    label(
-        data.systemPage,
-        text(state.language, "monitor"),
-        5,
-        88,
-        75,
-        22
-    );
-
-    button(data.systemPage, ID_CPU, text(state.language, "cpu"), 82, 84, 58, 30);
-    button(data.systemPage, ID_GPU, text(state.language, "gpu"), 145, 84, 58, 30);
-    button(data.systemPage, ID_RAM, text(state.language, "ram"), 208, 84, 58, 30);
-    button(data.systemPage, ID_TEMP, text(state.language, "temp"), 271, 84, 58, 30);
-}
-
 void createDevicePage(WindowData& data)
 {
     const auto& state = data.app->state();
@@ -642,7 +684,12 @@ void createControls(HWND window, WindowData& data)
 
     createEffectPage(window, data);
 
-    createSystemPage(window, data);
+    createPlaceholderPage(
+        window,
+        data,
+        1,
+        "placeholder_system"
+    );
 
     createPlaceholderPage(
         window,
@@ -1310,6 +1357,8 @@ LRESULT CALLBACK MainWindow::procedure(
                 && LOWORD(wParam) <
                     ID_PALETTE_BASE + 128
             ) {
+                const int oldPaletteIndex =
+                    data->app->state().paletteIndex;
                 const int newPaletteIndex =
                     LOWORD(wParam) - ID_PALETTE_BASE;
 
@@ -1317,29 +1366,33 @@ LRESULT CALLBACK MainWindow::procedure(
                     newPaletteIndex
                 );
 
-                // Palette selection is represented only by the current
-                // paletteIndex. Repaint every swatch so an old focus/selection
-                // frame cannot remain visually stuck on a previous color.
-                SetFocus(window);
+                // Only redraw the old and new swatches. Invalidating the
+                // parent is not enough because WS_CLIPCHILDREN prevents
+                // the parent from repainting these child controls.
+                HWND oldSwatch =
+                    GetDlgItem(
+                        data->effectPage,
+                        ID_PALETTE_BASE + oldPaletteIndex
+                    );
+                HWND newSwatch =
+                    GetDlgItem(
+                        data->effectPage,
+                        ID_PALETTE_BASE + newPaletteIndex
+                    );
 
-                for (int i = 0; i < 128; ++i) {
-                    HWND swatch =
-                        GetDlgItem(
-                            data->effectPage,
-                            ID_PALETTE_BASE + i
-                        );
-
-                    if (swatch) {
-                        RedrawWindow(
-                            swatch,
-                            nullptr,
-                            nullptr,
-                            RDW_ERASE
-                                | RDW_INVALIDATE
-                                | RDW_UPDATENOW
-                        );
-                    }
+                if (oldSwatch) {
+                    InvalidateRect(oldSwatch, nullptr, FALSE);
+                    UpdateWindow(oldSwatch);
                 }
+
+                if (newSwatch && newSwatch != oldSwatch) {
+                    InvalidateRect(newSwatch, nullptr, FALSE);
+                    UpdateWindow(newSwatch);
+                }
+
+                // Remove keyboard focus from the palette buttons without
+                // using the focus state as a visual selection indicator.
+                SetFocus(data.effectPage);
             }
 
             break;
