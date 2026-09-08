@@ -1392,7 +1392,7 @@ LRESULT CALLBACK MainWindow::procedure(
 
                 // Remove keyboard focus from the palette buttons without
                 // using the focus state as a visual selection indicator.
-                SetFocus(data.effectPage);
+                SetFocus(data->effectPage);
             }
 
             break;
