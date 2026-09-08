@@ -28,6 +28,7 @@ LPCWSTR text(Language language, const char* key)
     if (!std::strcmp(key, "tab_settings")) return zh ? L"设置" : L"Settings";
     if (!std::strcmp(key, "preview")) return zh ? L"Launchpad 预览" : L"Launchpad Preview";
     if (!std::strcmp(key, "palette")) return zh ? L"Launchpad 标准颜色" : L"Launchpad Standard Colors";
+    if (!std::strcmp(key, "palette_note")) return zh ? L"（不保证所有颜色可正常显示）" : L"(Not all colors are guaranteed to display correctly.)";
     if (!std::strcmp(key, "placeholder_system")) return zh ? L"系统监控选项将在后续版本加入。" : L"System monitoring options will be added in a later version.";
     if (!std::strcmp(key, "placeholder_text")) return zh ? L"文字与图标功能将在后续版本加入。" : L"Text and icon features will be added in a later version.";
     if (!std::strcmp(key, "placeholder_settings")) return zh ? L"更多设置将在后续版本加入。" : L"More settings will be added in a later version.";
