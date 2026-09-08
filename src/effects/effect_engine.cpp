@@ -16,11 +16,13 @@ void EffectEngine::render(AppState& state, LedFrame& frame, FunctionKeyFrame& fu
 
     // MK2 has a fixed 128-color hardware palette. Quantize the final frame so
     // the preview and the physical Launchpad show the same practical gamut.
+    if (state.effect != Effect::Breathe) {
     for (auto& row : frame) {
         for (auto& pixel : row) {
             pixel = snapToPalette(pixel);
         }
     }
+}
 
     renderFunctionKeys(frame, functionKeys);
 
