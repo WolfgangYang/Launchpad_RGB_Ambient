@@ -27,11 +27,8 @@ public:
 
     bool sendSysEx(const BYTE* data, DWORD length);
     bool setLed(int x, int y, BYTE red, BYTE green, BYTE blue);
-    bool setLedColor(int x, int y, BYTE color);
     bool setFunctionKey(int index, BYTE red, BYTE green, BYTE blue);
-    bool setFunctionKeyColor(int index, BYTE color);
     bool setTopFunctionKey(int index, BYTE red, BYTE green, BYTE blue);
-    bool setTopFunctionKeyColor(int index, BYTE color);
     void clearGrid();
 
 private:
