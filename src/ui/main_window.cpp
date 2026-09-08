@@ -51,287 +51,116 @@ struct WindowData {
     int tab = 0;
 };
 
-void applyFont(HWND parent, HFONT font)
+HWND label(HWND parent, LPCWSTR value, int x, int y, int w, int h, int id = 0)
 {
-    if (!parent || !font) {
-        return;
-    }
-
-    SendMessageW(
-        parent,
-        WM_SETFONT,
-        reinterpret_cast<WPARAM>(font),
-        TRUE
-    );
-}
-
-HWND label(HWND parent, const std::wstring& textValue,
-           int x, int y, int width, int height)
-{
-    HWND control = CreateWindowExW(
-        0,
+    return CreateWindowW(
         L"STATIC",
-        textValue.c_str(),
+        value,
         WS_CHILD | WS_VISIBLE,
         x,
         y,
-        width,
-        height,
+        w,
+        h,
         parent,
-        nullptr,
+        id ? reinterpret_cast<HMENU>(static_cast<INT_PTR>(id)) : nullptr,
         GetModuleHandleW(nullptr),
         nullptr
     );
-
-    return control;
 }
 
-HWND button(HWND parent, const std::wstring& textValue,
-            int id, int x, int y, int width, int height)
+HWND button(HWND parent, int id, LPCWSTR value, int x, int y, int w, int h, DWORD style = BS_PUSHBUTTON)
 {
-    HWND control = CreateWindowExW(
-        0,
+    return CreateWindowW(
         L"BUTTON",
-        textValue.c_str(),
-        WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+        value,
+        WS_CHILD | WS_VISIBLE | style,
         x,
         y,
-        width,
-        height,
+        w,
+        h,
         parent,
-        reinterpret_cast<HMENU>(
-            static_cast<INT_PTR>(id)
-        ),
-        GetModuleHandleW(nullptr),
-        nullptr
-    );
-
-    return control;
-}
-
-void createPlaceholderPage(
-    HWND parent,
-    const std::wstring& title,
-    const std::wstring& description,
-    HFONT font)
-{
-    HWND page = CreateWindowExW(
-        0,
-        L"STATIC",
-        nullptr,
-        WS_CHILD | WS_VISIBLE,
-        0,
-        0,
-        1,
-        1,
-        parent,
-        nullptr,
-        GetModuleHandleW(nullptr),
-        nullptr
-    );
-
-    SetWindowLongPtrW(
-        page,
-        GWLP_USERDATA,
-        reinterpret_cast<LONG_PTR>(font)
-    );
-
-    HWND titleLabel = label(
-        page,
-        title,
-        20,
-        20,
-        400,
-        28
-    );
-
-    HWND descriptionLabel = label(
-        page,
-        description,
-        20,
-        60,
-        400,
-        60
-    );
-
-    applyFont(titleLabel, font);
-    applyFont(descriptionLabel, font);
-}
-
-void createEffectsPage(WindowData& data)
-{
-    data.effectPage = CreateWindowExW(
-        0,
-        L"STATIC",
-        nullptr,
-        WS_CHILD | WS_VISIBLE,
-        0,
-        0,
-        1,
-        1,
-        data.app ? nullptr : nullptr,
-        nullptr,
+        reinterpret_cast<HMENU>(static_cast<INT_PTR>(id)),
         GetModuleHandleW(nullptr),
         nullptr
     );
 }
 
-void positionPage(HWND page, int x, int y, int width, int height)
+void applyFont(HWND window, HFONT font)
 {
-    if (!page) {
-        return;
+    EnumChildWindows(
+        window,
+        [](HWND child, LPARAM param) -> BOOL {
+            SendMessageW(
+                child,
+                WM_SETFONT,
+                param,
+                TRUE
+            );
+            return TRUE;
+        },
+        reinterpret_cast<LPARAM>(font)
+    );
+}
+
+void setPageVisibility(WindowData& data)
+{
+    const HWND pages[] = {
+        data.effectPage,
+        data.systemPage,
+        data.textPage,
+        data.devicePage,
+        data.settingsPage
+    };
+
+    for (int i = 0; i < 5; ++i) {
+        ShowWindow(
+            pages[i],
+            i == data.tab ? SW_SHOW : SW_HIDE
+        );
     }
-
-    SetWindowPos(
-        page,
-        nullptr,
-        x,
-        y,
-        width,
-        height,
-        SWP_NOZORDER | SWP_NOACTIVATE
-    );
 }
 
 void selectTab(WindowData& data, int tab)
 {
-    data.tab = tab;
-
-    if (data.effectPage) {
-        ShowWindow(
-            data.effectPage,
-            tab == 0 ? SW_SHOW : SW_HIDE
-        );
-    }
-
-    if (data.systemPage) {
-        ShowWindow(
-            data.systemPage,
-            tab == 1 ? SW_SHOW : SW_HIDE
-        );
-    }
-
-    if (data.textPage) {
-        ShowWindow(
-            data.textPage,
-            tab == 2 ? SW_SHOW : SW_HIDE
-        );
-    }
-
-    if (data.devicePage) {
-        ShowWindow(
-            data.devicePage,
-            tab == 3 ? SW_SHOW : SW_HIDE
-        );
-    }
-
-    if (data.settingsPage) {
-        ShowWindow(
-            data.settingsPage,
-            tab == 4 ? SW_SHOW : SW_HIDE
-        );
-    }
+    data.tab = std::clamp(tab, 0, 4);
+    setPageVisibility(data);
 }
 
-void createTabs(WindowData& data, HWND window)
+void createEffectPage(HWND window, WindowData& data)
 {
-    const int x = 10;
-    const int y = 10;
-    const int width = 450;
-    const int height = 30;
+    const auto& state = data.app->state();
 
-    button(window, L"Effects", ID_TAB_EFFECTS,
-           x, y, 85, height);
-
-    button(window, L"System", ID_TAB_SYSTEM,
-           x + 90, y, 85, height);
-
-    button(window, L"Text", ID_TAB_TEXT,
-           x + 180, y, 85, height);
-
-    button(window, L"Device", ID_TAB_DEVICE,
-           x + 270, y, 85, height);
-
-    button(window, L"Settings", ID_TAB_SETTINGS,
-           x + 360, y, 85, height);
-}
-
-void createPalette(WindowData& data)
-{
-    if (!data.effectPage || !data.app) {
-        return;
-    }
-
-    const int startX = 20;
-    const int startY = 250;
-    const int swatch = 18;
-    const int gap = 3;
-
-    for (int i = 0; i < 128; ++i) {
-        const int row = i / 16;
-        const int col = i % 16;
-
-        const int x =
-            startX + col * (swatch + gap);
-
-        const int y =
-            startY + row * (swatch + gap);
-
-        HWND control = CreateWindowExW(
-            0,
-            L"BUTTON",
-            nullptr,
-            WS_CHILD | WS_VISIBLE | BS_OWNERDRAW,
-            x,
-            y,
-            swatch,
-            swatch,
-            data.effectPage,
-            reinterpret_cast<HMENU>(
-                static_cast<INT_PTR>(
-                    ID_PALETTE_BASE + i
-                )
-            ),
-            GetModuleHandleW(nullptr),
-            nullptr
-        );
-
-        if (control) {
-            SendMessageW(
-                control,
-                WM_SETFONT,
-                reinterpret_cast<WPARAM>(data.font),
-                TRUE
-            );
-        }
-    }
-}
-
-void createEffectControls(WindowData& data)
-{
-    if (!data.effectPage) {
-        return;
-    }
+    data.effectPage = CreateWindowW(
+        L"STATIC",
+        nullptr,
+        WS_CHILD | WS_VISIBLE,
+        15,
+        70,
+        450,
+        525,
+        window,
+        nullptr,
+        GetModuleHandleW(nullptr),
+        nullptr
+    );
 
     label(
         data.effectPage,
-        L"MIDI Device",
-        20,
-        20,
-        100,
+        text(state.language, "midi"),
+        5,
+        8,
+        45,
         22
     );
 
-    data.portCombo = CreateWindowExW(
-        0,
+    data.portCombo = CreateWindowW(
         L"COMBOBOX",
         nullptr,
-        WS_CHILD | WS_VISIBLE |
-        CBS_DROPDOWNLIST | WS_VSCROLL,
-        20,
-        45,
-        300,
-        250,
+        WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST,
+        55,
+        5,
+        330,
+        180,
         data.effectPage,
         reinterpret_cast<HMENU>(
             static_cast<INT_PTR>(ID_PORT)
@@ -342,160 +171,158 @@ void createEffectControls(WindowData& data)
 
     button(
         data.effectPage,
-        L"Refresh",
         ID_REFRESH,
-        330,
-        45,
-        80,
-        28
+        text(state.language, "refresh"),
+        5,
+        38,
+        92,
+        30
     );
 
     button(
         data.effectPage,
-        L"Connect",
         ID_CONNECT,
-        330,
-        80,
-        80,
-        28
+        text(state.language, "connect"),
+        103,
+        38,
+        92,
+        30
     );
 
     data.status = label(
         data.effectPage,
-        L"Not connected",
-        20,
-        80,
-        200,
-        22
+        text(state.language, "notconnected"),
+        205,
+        43,
+        180,
+        22,
+        ID_STATUS
     );
 
     label(
         data.effectPage,
-        L"Effect",
-        20,
-        120,
-        100,
+        L"",
+        5,
+        83,
+        75,
         22
     );
 
     button(
         data.effectPage,
-        L"Rainbow",
         ID_RAINBOW,
-        20,
-        145,
-        75,
-        28
+        text(state.language, "rainbow"),
+        5,
+        78,
+        62,
+        30
     );
 
     button(
         data.effectPage,
-        L"Breathe",
         ID_BREATHE,
-        100,
-        145,
-        75,
-        28
+        text(state.language, "breathe"),
+        72,
+        78,
+        62,
+        30
     );
 
     button(
         data.effectPage,
-        L"Wave",
         ID_WAVE,
-        180,
-        145,
-        75,
-        28
+        text(state.language, "wave"),
+        139,
+        78,
+        62,
+        30
     );
 
     button(
         data.effectPage,
-        L"Stars",
         ID_STARS,
-        260,
-        145,
-        75,
-        28
+        text(state.language, "stars"),
+        206,
+        78,
+        62,
+        30
     );
 
     button(
         data.effectPage,
-        L"Solid",
         ID_SOLID,
-        340,
-        145,
+        text(state.language, "solid"),
+        273,
+        78,
+        62,
+        30
+    );
+
+    label(
+        data.effectPage,
+        text(state.language, "monitor"),
+        5,
+        118,
         75,
-        28
-    );
-
-    label(
-        data.effectPage,
-        L"Monitoring",
-        20,
-        180,
-        100,
         22
     );
 
     button(
         data.effectPage,
-        L"CPU",
         ID_CPU,
-        20,
-        205,
-        70,
-        28
+        text(state.language, "cpu"),
+        82,
+        114,
+        58,
+        30
     );
 
     button(
         data.effectPage,
-        L"GPU",
         ID_GPU,
-        95,
-        205,
-        70,
-        28
+        text(state.language, "gpu"),
+        145,
+        114,
+        58,
+        30
     );
 
     button(
         data.effectPage,
-        L"RAM",
         ID_RAM,
-        170,
-        205,
-        70,
-        28
+        text(state.language, "ram"),
+        208,
+        114,
+        58,
+        30
     );
 
     button(
         data.effectPage,
-        L"Temp",
         ID_TEMP,
-        245,
-        205,
-        70,
-        28
+        text(state.language, "temp"),
+        271,
+        114,
+        58,
+        30
     );
 
     label(
         data.effectPage,
-        L"Palette",
-        20,
-        225,
-        100,
+        text(state.language, "brightness"),
+        5,
+        158,
+        70,
         22
     );
 
-    createPalette(data);
-
-    data.brightness = CreateWindowExW(
-        0,
+    data.brightness = CreateWindowW(
         TRACKBAR_CLASSW,
         nullptr,
-        WS_CHILD | WS_VISIBLE | TBS_AUTOTICKS,
-        330,
-        120,
-        120,
+        WS_CHILD | WS_VISIBLE,
+        78,
+        153,
+        305,
         30,
         data.effectPage,
         reinterpret_cast<HMENU>(
@@ -509,24 +336,32 @@ void createEffectControls(WindowData& data)
         data.brightness,
         TBM_SETRANGE,
         TRUE,
-        MAKELONG(0, 100)
+        MAKELONG(5, 100)
     );
 
     SendMessageW(
         data.brightness,
         TBM_SETPOS,
         TRUE,
-        70
+        state.brightness
     );
 
-    data.speed = CreateWindowExW(
-        0,
+    label(
+        data.effectPage,
+        text(state.language, "speed"),
+        5,
+        198,
+        70,
+        22
+    );
+
+    data.speed = CreateWindowW(
         TRACKBAR_CLASSW,
         nullptr,
-        WS_CHILD | WS_VISIBLE | TBS_AUTOTICKS,
-        330,
-        160,
-        120,
+        WS_CHILD | WS_VISIBLE,
+        78,
+        193,
+        305,
         30,
         data.effectPage,
         reinterpret_cast<HMENU>(
@@ -540,100 +375,93 @@ void createEffectControls(WindowData& data)
         data.speed,
         TBM_SETRANGE,
         TRUE,
-        MAKELONG(1, 100)
+        MAKELONG(1, 50)
     );
 
     SendMessageW(
         data.speed,
         TBM_SETPOS,
         TRUE,
-        20
-    );
-}
-
-void createDevicePage(WindowData& data, HWND window)
-{
-    data.devicePage = CreateWindowExW(
-        0,
-        L"STATIC",
-        nullptr,
-        WS_CHILD,
-        10,
-        50,
-        450,
-        550,
-        window,
-        nullptr,
-        GetModuleHandleW(nullptr),
-        nullptr
+        state.speed
     );
 
     label(
-        data.devicePage,
-        L"Device",
-        20,
-        20,
-        400,
-        28
+        data.effectPage,
+        text(state.language, "palette"),
+        5,
+        238,
+        230,
+        22
     );
 
-    label(
-        data.devicePage,
-        L"Launchpad device information will appear here.",
-        20,
-        60,
-        420,
-        40
-    );
+    const int startX = 5;
+    const int startY = 266;
+    const int cell = 22;
+    const int gap = 2;
+
+    for (int i = 0; i < 128; ++i) {
+        const int col = i % 16;
+        const int row = i / 16;
+
+        HWND swatch = CreateWindowW(
+            L"BUTTON",
+            nullptr,
+            WS_CHILD | WS_VISIBLE | BS_OWNERDRAW,
+            startX + col * (cell + gap),
+            startY + row * (cell + gap),
+            cell,
+            cell,
+            data.effectPage,
+            reinterpret_cast<HMENU>(
+                static_cast<INT_PTR>(
+                    ID_PALETTE_BASE + i
+                )
+            ),
+            GetModuleHandleW(nullptr),
+            nullptr
+        );
+
+        SendMessageW(
+            swatch,
+            WM_SETFONT,
+            reinterpret_cast<WPARAM>(data.font),
+            TRUE
+        );
+    }
 }
 
-void createControls(WindowData& data, HWND window)
+void createPlaceholderPage(
+    HWND window,
+    WindowData& data,
+    int index,
+    const char* key)
 {
-    data.font = CreateFontW(
-        -15,
-        0,
-        0,
-        0,
-        FW_NORMAL,
-        FALSE,
-        FALSE,
-        FALSE,
-        DEFAULT_CHARSET,
-        OUT_DEFAULT_PRECIS,
-        CLIP_DEFAULT_PRECIS,
-        CLEARTYPE_QUALITY,
-        DEFAULT_PITCH | FF_DONTCARE,
-        L"Microsoft YaHei UI"
-    );
+    HWND* target = nullptr;
 
-    createTabs(data, window);
+    if (index == 1) {
+        target = &data.systemPage;
+    }
 
-    data.effectPage = CreateWindowExW(
-        0,
+    if (index == 2) {
+        target = &data.textPage;
+    }
+
+    if (index == 3) {
+        target = &data.devicePage;
+    }
+
+    if (index == 4) {
+        target = &data.settingsPage;
+    }
+
+    *target = CreateWindowW(
         L"STATIC",
         nullptr,
         WS_CHILD | WS_VISIBLE,
-        10,
-        50,
+        15,
+        70,
         450,
-        550,
-        window,
-        nullptr,
-        GetModuleHandleW(nullptr),
-        nullptr
-    );
-
-    createEffectControls(data);
-
-    data.systemPage = CreateWindowExW(
-        0,
-        L"STATIC",
-        nullptr,
-        WS_CHILD,
-        10,
-        50,
-        450,
-        550,
+        525,
         window,
         nullptr,
         GetModuleHandleW(nullptr),
@@ -641,125 +469,129 @@ void createControls(WindowData& data, HWND window)
     );
 
     label(
-        data.systemPage,
-        L"System",
+        *target,
+        text(data.app->state().language, key),
         20,
-        20,
+        35,
         400,
-        28
+        80
+    );
+}
+
+void createDevicePage(WindowData& data)
+{
+    const auto& state = data.app->state();
+
+    label(
+        data.devicePage,
+        text(state.language, "midi"),
+        20,
+        35,
+        70,
+        22
     );
 
     label(
-        data.systemPage,
-        L"System monitoring options.",
+        data.devicePage,
+        text(state.language, "preview_hint"),
         20,
-        60,
+        75,
         400,
-        40
+        60
     );
+}
 
-    data.textPage = CreateWindowExW(
-        0,
-        L"STATIC",
-        nullptr,
-        WS_CHILD,
-        10,
-        50,
-        450,
-        550,
+void createControls(HWND window, WindowData& data)
+{
+    const auto& state = data.app->state();
+
+    button(
         window,
-        nullptr,
-        GetModuleHandleW(nullptr),
-        nullptr
+        ID_TAB_EFFECTS,
+        text(state.language, "tab_effects"),
+        15,
+        15,
+        82,
+        32
     );
 
-    label(
-        data.textPage,
-        L"Text",
-        20,
-        20,
-        400,
-        28
-    );
-
-    label(
-        data.textPage,
-        L"Text and pixel-font functions are reserved for a future version.",
-        20,
-        60,
-        420,
-        50
-    );
-
-    createDevicePage(data, window);
-
-    data.settingsPage = CreateWindowExW(
-        0,
-        L"STATIC",
-        nullptr,
-        WS_CHILD,
-        10,
-        50,
-        450,
-        550,
+    button(
         window,
-        nullptr,
-        GetModuleHandleW(nullptr),
-        nullptr
+        ID_TAB_SYSTEM,
+        text(state.language, "tab_system"),
+        101,
+        15,
+        82,
+        32
     );
 
-    label(
-        data.settingsPage,
-        L"Settings",
-        20,
-        20,
-        400,
-        28
+    button(
+        window,
+        ID_TAB_TEXT,
+        text(state.language, "tab_text"),
+        187,
+        15,
+        82,
+        32
     );
 
-    label(
-        data.settingsPage,
-        L"Application settings are reserved for a future version.",
-        20,
-        60,
-        420,
-        50
+    button(
+        window,
+        ID_TAB_DEVICE,
+        text(state.language, "tab_device"),
+        273,
+        15,
+        82,
+        32
     );
+
+    button(
+        window,
+        ID_TAB_SETTINGS,
+        text(state.language, "tab_settings"),
+        359,
+        15,
+        82,
+        32
+    );
+
+    createEffectPage(window, data);
+
+    createPlaceholderPage(
+        window,
+        data,
+        1,
+        "placeholder_system"
+    );
+
+    createPlaceholderPage(
+        window,
+        data,
+        2,
+        "placeholder_text"
+    );
+
+    createPlaceholderPage(
+        window,
+        data,
+        3,
+        "placeholder_text"
+    );
+
+    createPlaceholderPage(
+        window,
+        data,
+        4,
+        "placeholder_settings"
+    );
+
+    createDevicePage(data);
 
     selectTab(data, 0);
 
-    const auto ports = data.app->midi().enumerate();
-
-    for (const auto& port : ports) {
-        const int index = static_cast<int>(
-            SendMessageW(
-                data.portCombo,
-                CB_ADDSTRING,
-                0,
-                reinterpret_cast<LPARAM>(
-                    port.name.c_str()
-                )
-            )
-        );
-
-        SendMessageW(
-            data.portCombo,
-            CB_SETITEMDATA,
-            index,
-            static_cast<LPARAM>(
-                port.deviceIndex
-            )
-        );
-    }
-
-    if (!ports.empty()) {
-        SendMessageW(
-            data.portCombo,
-            CB_SETCURSEL,
-            0,
-            0
-        );
-    }
+    data.app->refreshMidiPorts(
+        data.portCombo
+    );
 }
 
 void drawPreview(
@@ -827,6 +659,7 @@ void drawPreview(
              │              │ R
              │              │ R
              └──────────────┘ R
+                              R
 
         The complete Launchpad area is calculated first so
         the right-side keys can never extend outside the panel.
@@ -1061,8 +894,7 @@ void drawPreview(
 
 } // namespace
 
-bool MainWindow::registerClass(
-    HINSTANCE instance)
+bool MainWindow::registerClass(HINSTANCE instance)
 {
     WNDCLASSW wc{};
 
@@ -1073,7 +905,7 @@ bool MainWindow::registerClass(
         instance;
 
     wc.lpszClassName =
-        L"LaunchpadRGBAmbient";
+        L"LaunchpadRGBAmbientV04";
 
     wc.hCursor =
         LoadCursorW(
@@ -1082,8 +914,8 @@ bool MainWindow::registerClass(
         );
 
     wc.hbrBackground =
-        static_cast<HBRUSH>(
-            GetStockObject(WHITE_BRUSH)
+        reinterpret_cast<HBRUSH>(
+            COLOR_WINDOW + 1
         );
 
     return RegisterClassW(&wc) != 0;
@@ -1094,21 +926,22 @@ HWND MainWindow::create(
     int showCommand,
     Application* app)
 {
-    HWND window =
-        CreateWindowExW(
-            0,
-            L"LaunchpadRGBAmbient",
-            L"Launchpad RGB Ambient",
-            WS_OVERLAPPEDWINDOW,
-            CW_USEDEFAULT,
-            CW_USEDEFAULT,
-            930,
-            650,
-            nullptr,
-            nullptr,
-            instance,
-            app
-        );
+    HWND window = CreateWindowW(
+        L"LaunchpadRGBAmbientV04",
+        windowTitle(),
+        WS_OVERLAPPED
+            | WS_CAPTION
+            | WS_SYSMENU
+            | WS_MINIMIZEBOX,
+        CW_USEDEFAULT,
+        CW_USEDEFAULT,
+        930,
+        650,
+        nullptr,
+        nullptr,
+        instance,
+        app
+    );
 
     if (!window) {
         return nullptr;
@@ -1124,13 +957,13 @@ HWND MainWindow::create(
     return window;
 }
 
-LRESULT MainWindow::procedure(
+LRESULT CALLBACK MainWindow::procedure(
     HWND window,
     UINT message,
     WPARAM wParam,
     LPARAM lParam)
 {
-    WindowData* data =
+    auto* data =
         reinterpret_cast<WindowData*>(
             GetWindowLongPtrW(
                 window,
@@ -1140,74 +973,168 @@ LRESULT MainWindow::procedure(
 
     switch (message) {
     case WM_NCCREATE: {
-        const auto* create =
-            reinterpret_cast<
-                const CREATESTRUCTW*
-            >(lParam);
-
-        auto* app =
-            reinterpret_cast<Application*>(
-                create->lpCreateParams
+        auto* cs =
+            reinterpret_cast<CREATESTRUCTW*>(
+                lParam
             );
 
-        auto* windowData =
-            new WindowData();
+        auto* newData =
+            new WindowData{};
 
-        windowData->app =
-            app;
+        newData->app =
+            reinterpret_cast<Application*>(
+                cs->lpCreateParams
+            );
 
         SetWindowLongPtrW(
             window,
             GWLP_USERDATA,
             reinterpret_cast<LONG_PTR>(
-                windowData
+                newData
             )
         );
-
-        if (app) {
-            app->initialize(window);
-        }
 
         return TRUE;
     }
 
     case WM_CREATE:
-        data =
-            reinterpret_cast<WindowData*>(
-                GetWindowLongPtrW(
-                    window,
-                    GWLP_USERDATA
-                )
-            );
+        data->app->initialize(window);
 
-        if (data) {
-            createControls(
-                *data,
-                window
-            );
+        data->font = CreateFontW(
+            -15,
+            0,
+            0,
+            0,
+            FW_NORMAL,
+            FALSE,
+            FALSE,
+            FALSE,
+            DEFAULT_CHARSET,
+            OUT_DEFAULT_PRECIS,
+            CLIP_DEFAULT_PRECIS,
+            CLEARTYPE_QUALITY,
+            DEFAULT_PITCH | FF_DONTCARE,
+            L"Microsoft YaHei"
+        );
 
-            SetTimer(
-                window,
-                1,
-                80,
-                nullptr
-            );
+        createControls(
+            window,
+            *data
+        );
 
-            SetTimer(
-                window,
-                2,
-                500,
-                nullptr
-            );
-        }
+        applyFont(
+            window,
+            data->font
+        );
+
+        SetTimer(
+            window,
+            1,
+            80,
+            nullptr
+        );
+
+        SetTimer(
+            window,
+            2,
+            1000,
+            nullptr
+        );
 
         return 0;
 
-    case WM_COMMAND:
-        if (!data || !data->app) {
-            break;
+    case WM_DRAWITEM: {
+        auto* dis =
+            reinterpret_cast<DRAWITEMSTRUCT*>(
+                lParam
+            );
+
+        if (
+            dis
+            && dis->CtlID >= ID_PALETTE_BASE
+            && dis->CtlID < ID_PALETTE_BASE + 128
+        ) {
+            const int index =
+                dis->CtlID
+                - ID_PALETTE_BASE;
+
+            const Rgb& c =
+                launchpadPalette(
+                    static_cast<std::uint8_t>(
+                        index
+                    )
+                ).rgb;
+
+            HBRUSH brush =
+                CreateSolidBrush(
+                    RGB(
+                        static_cast<int>(
+                            c.r * 255.0
+                        ),
+                        static_cast<int>(
+                            c.g * 255.0
+                        ),
+                        static_cast<int>(
+                            c.b * 255.0
+                        )
+                    )
+                );
+
+            FillRect(
+                dis->hDC,
+                &dis->rcItem,
+                brush
+            );
+
+            DeleteObject(brush);
+
+            const bool selected =
+                data->app->state().paletteIndex
+                == index;
+
+            HBRUSH border =
+                CreateSolidBrush(
+                    selected
+                        ? RGB(0, 0, 0)
+                        : RGB(160, 160, 160)
+                );
+
+            FrameRect(
+                dis->hDC,
+                &dis->rcItem,
+                border
+            );
+
+            DeleteObject(border);
+
+            if (selected) {
+                RECT inner =
+                    dis->rcItem;
+
+                InflateRect(
+                    &inner,
+                    -3,
+                    -3
+                );
+
+                FrameRect(
+                    dis->hDC,
+                    &inner,
+                    static_cast<HBRUSH>(
+                        GetStockObject(
+                            WHITE_BRUSH
+                        )
+                    )
+                );
+            }
+
+            return TRUE;
         }
 
+        break;
+    }
+
+    case WM_COMMAND:
         switch (LOWORD(wParam)) {
         case ID_TAB_EFFECTS:
             selectTab(*data, 0);
@@ -1291,8 +1218,7 @@ LRESULT MainWindow::procedure(
         default:
             if (
                 LOWORD(wParam) >= ID_PALETTE_BASE
-                &&
-                LOWORD(wParam)
+                && LOWORD(wParam)
                     < ID_PALETTE_BASE + 128
             ) {
                 data->app->setPaletteColor(
@@ -1313,10 +1239,6 @@ LRESULT MainWindow::procedure(
         return 0;
 
     case WM_HSCROLL:
-        if (!data || !data->app) {
-            break;
-        }
-
         if (
             reinterpret_cast<HWND>(lParam)
             == data->brightness
@@ -1349,10 +1271,6 @@ LRESULT MainWindow::procedure(
         return 0;
 
     case WM_TIMER:
-        if (!data || !data->app) {
-            break;
-        }
-
         if (wParam == 1) {
             data->app->render();
         }
@@ -1379,14 +1297,12 @@ LRESULT MainWindow::procedure(
             &client
         );
 
-        if (data && data->app) {
-            drawPreview(
-                dc,
-                client,
-                *data->app,
-                data->app->state().language
-            );
-        }
+        drawPreview(
+            dc,
+            client,
+            *data->app,
+            data->app->state().language
+        );
 
         EndPaint(
             window,
@@ -1407,25 +1323,21 @@ LRESULT MainWindow::procedure(
             2
         );
 
-        if (data) {
-            if (data->app) {
-                data->app->shutdown();
-            }
+        data->app->shutdown();
 
-            if (data->font) {
-                DeleteObject(
-                    data->font
-                );
-            }
-
-            delete data;
-
-            SetWindowLongPtrW(
-                window,
-                GWLP_USERDATA,
-                0
+        if (data->font) {
+            DeleteObject(
+                data->font
             );
         }
+
+        delete data;
+
+        SetWindowLongPtrW(
+            window,
+            GWLP_USERDATA,
+            0
+        );
 
         PostQuitMessage(0);
 
