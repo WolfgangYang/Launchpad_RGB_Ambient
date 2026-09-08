@@ -68,7 +68,15 @@ HWND label(HWND parent, LPCWSTR value, int x, int y, int w, int h, int id = 0)
     );
 }
 
-HWND button(HWND parent, int id, LPCWSTR value, int x, int y, int w, int h, DWORD style = BS_PUSHBUTTON)
+HWND button(
+    HWND parent,
+    int id,
+    LPCWSTR value,
+    int x,
+    int y,
+    int w,
+    int h,
+    DWORD style = BS_PUSHBUTTON)
 {
     return CreateWindowW(
         L"BUTTON",
@@ -82,6 +90,54 @@ HWND button(HWND parent, int id, LPCWSTR value, int x, int y, int w, int h, DWOR
         reinterpret_cast<HMENU>(static_cast<INT_PTR>(id)),
         GetModuleHandleW(nullptr),
         nullptr
+    );
+}
+
+/*
+    Controls inside a STATIC page normally send their notifications
+    to that page instead of the main window.
+
+    Forward the relevant messages back to the main window so the
+    existing WM_COMMAND / WM_HSCROLL / WM_DRAWITEM handling remains
+    unchanged.
+*/
+LRESULT CALLBACK pageProcedure(
+    HWND window,
+    UINT message,
+    WPARAM wParam,
+    LPARAM lParam)
+{
+    if (
+        message == WM_COMMAND ||
+        message == WM_HSCROLL ||
+        message == WM_DRAWITEM
+    ) {
+        HWND parent = GetParent(window);
+
+        if (parent) {
+            return SendMessageW(
+                parent,
+                message,
+                wParam,
+                lParam
+            );
+        }
+    }
+
+    return DefWindowProcW(
+        window,
+        message,
+        wParam,
+        lParam
+    );
+}
+
+void enablePageMessageForwarding(HWND page)
+{
+    SetWindowLongPtrW(
+        page,
+        GWLP_WNDPROC,
+        reinterpret_cast<LONG_PTR>(pageProcedure)
     );
 }
 
@@ -144,6 +200,10 @@ void createEffectPage(HWND window, WindowData& data)
         nullptr
     );
 
+    enablePageMessageForwarding(
+        data.effectPage
+    );
+
     label(
         data.effectPage,
         text(state.language, "midi"),
@@ -197,15 +257,6 @@ void createEffectPage(HWND window, WindowData& data)
         180,
         22,
         ID_STATUS
-    );
-
-    label(
-        data.effectPage,
-        L"",
-        5,
-        83,
-        75,
-        22
     );
 
     button(
@@ -468,6 +519,8 @@ void createPlaceholderPage(
         nullptr
     );
 
+    enablePageMessageForwarding(*target);
+
     label(
         *target,
         text(data.app->state().language, key),
@@ -645,25 +698,8 @@ void drawPreview(
         panelX + 18,
         panelY + 15,
         title.c_str(),
-        static_cast<int>(
-            title.size()
-        )
+        static_cast<int>(title.size())
     );
-
-    /*
-        Preview layout:
-
-             T T T T T T T T
-             ┌──────────────┐
-             │  8 x 8 grid  │ R
-             │              │ R
-             │              │ R
-             └──────────────┘ R
-                              R
-
-        The complete Launchpad area is calculated first so
-        the right-side keys can never extend outside the panel.
-    */
 
     const int margin = 28;
     const int topKeyHeight = 20;
@@ -728,7 +764,6 @@ void drawPreview(
     const auto& frame =
         app.frame();
 
-    // Main 8 x 8 grid.
     for (int y = 0; y < 8; ++y) {
         for (int x = 0; x < 8; ++x) {
             const Rgb& c =
@@ -777,7 +812,6 @@ void drawPreview(
     const auto& keys =
         app.functionKeys();
 
-    // Top 8 function keys.
     for (int i = 0; i < 8; ++i) {
         const Rgb& c =
             keys[8 + i];
@@ -825,7 +859,6 @@ void drawPreview(
         );
     }
 
-    // Right 8 function keys.
     const int rightX =
         gridX
         + gridSize
@@ -886,9 +919,7 @@ void drawPreview(
         panelX + 18,
         panel.bottom - 35,
         hint.c_str(),
-        static_cast<int>(
-            hint.size()
-        )
+        static_cast<int>(hint.size())
     );
 }
 
@@ -972,6 +1003,7 @@ LRESULT CALLBACK MainWindow::procedure(
         );
 
     switch (message) {
+
     case WM_NCCREATE: {
         auto* cs =
             reinterpret_cast<CREATESTRUCTW*>(
@@ -1000,22 +1032,23 @@ LRESULT CALLBACK MainWindow::procedure(
     case WM_CREATE:
         data->app->initialize(window);
 
-        data->font = CreateFontW(
-            -15,
-            0,
-            0,
-            0,
-            FW_NORMAL,
-            FALSE,
-            FALSE,
-            FALSE,
-            DEFAULT_CHARSET,
-            OUT_DEFAULT_PRECIS,
-            CLIP_DEFAULT_PRECIS,
-            CLEARTYPE_QUALITY,
-            DEFAULT_PITCH | FF_DONTCARE,
-            L"Microsoft YaHei"
-        );
+        data->font =
+            CreateFontW(
+                -15,
+                0,
+                0,
+                0,
+                FW_NORMAL,
+                FALSE,
+                FALSE,
+                FALSE,
+                DEFAULT_CHARSET,
+                OUT_DEFAULT_PRECIS,
+                CLIP_DEFAULT_PRECIS,
+                CLEARTYPE_QUALITY,
+                DEFAULT_PITCH | FF_DONTCARE,
+                L"Microsoft YaHei"
+            );
 
         createControls(
             window,
@@ -1052,7 +1085,8 @@ LRESULT CALLBACK MainWindow::procedure(
         if (
             dis
             && dis->CtlID >= ID_PALETTE_BASE
-            && dis->CtlID < ID_PALETTE_BASE + 128
+            && dis->CtlID <
+                ID_PALETTE_BASE + 128
         ) {
             const int index =
                 dis->CtlID
@@ -1136,6 +1170,7 @@ LRESULT CALLBACK MainWindow::procedure(
 
     case WM_COMMAND:
         switch (LOWORD(wParam)) {
+
         case ID_TAB_EFFECTS:
             selectTab(*data, 0);
             break;
@@ -1218,8 +1253,8 @@ LRESULT CALLBACK MainWindow::procedure(
         default:
             if (
                 LOWORD(wParam) >= ID_PALETTE_BASE
-                && LOWORD(wParam)
-                    < ID_PALETTE_BASE + 128
+                && LOWORD(wParam) <
+                    ID_PALETTE_BASE + 128
             ) {
                 data->app->setPaletteColor(
                     LOWORD(wParam)
