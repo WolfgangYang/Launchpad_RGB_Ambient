@@ -1,27 +1,25 @@
-# Launchpad RGB Ambient v0.4
+# Launchpad RGB Ambient v0.5
 
 Windows-native C++17 ambient-light controller for Novation Launchpad MK2.
 
-## v0.4 changes
+## v0.5 changes
 
-- Added a live desktop preview of the full Launchpad MK2 layout:
-  - 8x8 RGB grid
-  - 8 right-side function keys
-  - 8 top-side function keys
-- Preview and hardware rendering are driven from the same rendered frame.
-- Added tabbed UI structure for future features: Effects, System, Text, Device, Settings.
-- Added the Launchpad MK2 standard 128-color palette instead of an arbitrary RGB picker.
-- Effects use the selected palette color where applicable.
-- Final rendered colors are quantized to the MK2's 128-color palette so the preview models the device's practical color gamut.
-- Kept the existing MIDI RGB SysEx output path for hardware compatibility.
+- Rainbow no longer depends on the selected palette color; the palette controls are hidden while Rainbow is active.
+- System monitoring indicators use a defined overlay layout so CPU/RAM bars do not accidentally overwrite the GPU/temperature corner indicators.
+- Added a basic English-letter text engine with horizontal scrolling.
+- Text input explicitly accepts only `A-Z` / `a-z`.
+- Added a Stop control to the Effects, System and Text pages. Stop clears all output and disables active indicators.
+- Added a Settings option to hide the application to the Windows system tray when the window is closed.
+- Updated application/project/build artifact version to 0.5.
 
 ## Existing features
 
-- MIDI output-device enumeration and Launchpad MK2 connection.
+- MIDI output-device enumeration with Windows software MIDI devices filtered out.
+- Launchpad MK2 connection and runtime unplug handling.
 - Rainbow, Breathe, Wave, Stars and Solid effects.
 - Brightness and speed controls.
-- CPU/RAM monitoring indicators.
-- GPU/temperature indicator paths remain placeholders until their data sources are implemented.
+- CPU/RAM monitoring indicators; GPU/temperature paths remain placeholders until real data sources are implemented.
+- Live desktop preview of the full Launchpad MK2 layout: 8x8 RGB grid, 8 right-side keys and 8 top-side keys.
 - Chinese/English UI based on Windows UI language.
 - CMake + GitHub Actions Windows/MSVC build.
 

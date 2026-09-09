@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(Launchpad_RGB_Ambient VERSION 0.4.1 LANGUAGES CXX)
+project(Launchpad_RGB_Ambient VERSION 0.5 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -26,4 +26,5 @@ target_link_libraries(Launchpad_RGB_Ambient PRIVATE
     winmm
     comctl32
     pdh
+    shell32
 )

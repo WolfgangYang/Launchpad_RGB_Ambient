@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 
 namespace lra {
 
@@ -14,7 +15,8 @@ enum class Effect {
     Breathe,
     Wave,
     Stars,
-    Solid
+    Solid,
+    Text
 };
 
 struct Rgb {
@@ -44,6 +46,10 @@ struct AppState {
     int speed = 20;
     int paletteIndex = 5;
     double animationPhase = 0.0;
+
+    std::wstring textContent;
+    double textOffset = 0.0;
+    bool trayOnClose = false;
 
     MonitoringState monitoring;
 };

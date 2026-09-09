@@ -12,6 +12,8 @@ bool Application::initialize(HWND window)
     window_ = window;
     detectLanguage(state_);
     state_.effectRunning = false;
+    state_.textContent.clear();
+    state_.textOffset = -8.0;
     monitor_.initialize();
     return true;
 }
@@ -171,6 +173,48 @@ void Application::setEffect(Effect effect)
 {
     state_.effect = effect;
     state_.effectRunning = true;
+    state_.textOffset = -8.0;
+}
+
+void Application::startText(const std::wstring& content)
+{
+    if (content.empty()) {
+        return;
+    }
+
+    state_.textContent = content;
+    for (auto& ch : state_.textContent) {
+        if (ch >= L'a' && ch <= L'z') {
+            ch = static_cast<wchar_t>(ch - L'a' + L'A');
+        }
+    }
+
+    state_.effect = Effect::Text;
+    state_.textOffset = -8.0;
+    state_.effectRunning = true;
+}
+
+void Application::stopAll()
+{
+    state_.effectRunning = false;
+    state_.cpuIndicator = false;
+    state_.gpuIndicator = false;
+    state_.ramIndicator = false;
+    state_.temperatureIndicator = false;
+    state_.textOffset = -8.0;
+
+    for (auto& row : frame_) {
+        for (auto& pixel : row) pixel = {};
+    }
+    for (auto& key : functionKeys_) key = {};
+
+    if (window_) {
+        InvalidateRect(window_, nullptr, FALSE);
+    }
+
+    if (midi_.isOpen()) {
+        midi_.clearGrid();
+    }
 }
 
 void Application::setPaletteColor(int index)
@@ -189,22 +233,25 @@ void Application::setPaletteColor(int index)
 void Application::toggleCpu()
 {
     state_.cpuIndicator = !state_.cpuIndicator;
+    if (state_.cpuIndicator) state_.effectRunning = true;
 }
 
 void Application::toggleGpu()
 {
     state_.gpuIndicator = !state_.gpuIndicator;
+    if (state_.gpuIndicator) state_.effectRunning = true;
 }
 
 void Application::toggleRam()
 {
     state_.ramIndicator = !state_.ramIndicator;
+    if (state_.ramIndicator) state_.effectRunning = true;
 }
 
 void Application::toggleTemperature()
 {
-    state_.temperatureIndicator =
-        !state_.temperatureIndicator;
+    state_.temperatureIndicator = !state_.temperatureIndicator;
+    if (state_.temperatureIndicator) state_.effectRunning = true;
 }
 
 void Application::render()
@@ -256,23 +303,8 @@ void Application::render()
                     blue)) {
 
                 // The device disappeared while rendering.
-                // Restore the software to its initial state.
-                state_.effectRunning = false;
-
-                for (auto& row : frame_) {
-                    for (auto& pixel : row) {
-                        pixel = {};
-                    }
-                }
-
-                for (auto& key : functionKeys_) {
-                    key = {};
-                }
-
-                if (window_) {
-                    InvalidateRect(window_, nullptr, FALSE);
-                }
-
+                // Restore the complete software output state as well.
+                stopAll();
                 return;
             }
         }
@@ -300,22 +332,7 @@ void Application::render()
                 green,
                 blue)) {
 
-            state_.effectRunning = false;
-
-            for (auto& row : frame_) {
-                for (auto& pixel : row) {
-                    pixel = {};
-                }
-            }
-
-            for (auto& key : functionKeys_) {
-                key = {};
-            }
-
-            if (window_) {
-                InvalidateRect(window_, nullptr, FALSE);
-            }
-
+            stopAll();
             return;
         }
     }
@@ -342,22 +359,7 @@ void Application::render()
                 green,
                 blue)) {
 
-            state_.effectRunning = false;
-
-            for (auto& row : frame_) {
-                for (auto& pixel : row) {
-                    pixel = {};
-                }
-            }
-
-            for (auto& key : functionKeys_) {
-                key = {};
-            }
-
-            if (window_) {
-                InvalidateRect(window_, nullptr, FALSE);
-            }
-
+            stopAll();
             return;
         }
     }

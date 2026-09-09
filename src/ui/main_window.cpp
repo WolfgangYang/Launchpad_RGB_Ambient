@@ -6,6 +6,8 @@
 #include <commctrl.h>
 #include <algorithm>
 #include <string>
+#include <vector>
+#include <cwctype>
 
 namespace lra {
 
@@ -27,13 +29,20 @@ enum ControlId {
     ID_BRIGHTNESS = 130,
     ID_SPEED,
     ID_STATUS,
+    ID_STOP = 140,
+    ID_TEXT_INPUT,
+    ID_TEXT_START,
+    ID_TRAY_ON_CLOSE,
     ID_TAB_EFFECTS = 200,
     ID_TAB_SYSTEM,
     ID_TAB_TEXT,
     ID_TAB_SETTINGS,
     ID_TABS = 205,
     ID_PLACEHOLDER = 250,
-    ID_PALETTE_BASE = 400
+    ID_PALETTE_BASE = 400,
+    ID_TRAY_OPEN = 9001,
+    ID_TRAY_EXIT = 9002,
+    WM_TRAYICON = WM_APP + 10
 };
 
 struct WindowData {
@@ -49,7 +58,14 @@ struct WindowData {
     HFONT font = nullptr;
     HWND tabControl = nullptr;
     int tab = 0;
+    HWND textInput = nullptr;
+    HWND textHint = nullptr;
+    HWND trayCheck = nullptr;
+    bool trayIconVisible = false;
+    bool forceExit = false;
 };
+
+void updatePaletteVisibility(WindowData& data);
 
 HWND label(HWND parent, LPCWSTR value, int x, int y, int w, int h, int id = 0)
 {
@@ -243,6 +259,7 @@ void selectTab(WindowData& data, int tab)
     }
 
     setPageVisibility(data);
+    if (data.effectPage) updatePaletteVisibility(data);
 }
 
 bool isUsablePaletteColor(int index)
@@ -260,6 +277,31 @@ bool isUsablePaletteColor(int index)
         + 0.0722 * c.b;
 
     return luminance >= 0.18;
+}
+
+
+void updatePaletteVisibility(WindowData& data)
+{
+    const bool visible = data.app->state().effect != Effect::Rainbow &&
+                         data.app->state().effect != Effect::Text;
+
+    if (HWND h = GetDlgItem(data.effectPage, ID_PALETTE_BASE - 1)) {
+        ShowWindow(h, visible ? SW_SHOW : SW_HIDE);
+    }
+    if (HWND h = GetDlgItem(data.effectPage, ID_PALETTE_BASE - 2)) {
+        ShowWindow(h, visible ? SW_SHOW : SW_HIDE);
+    }
+
+    EnumChildWindows(data.effectPage, [](HWND child, LPARAM param) -> BOOL {
+        WindowData* data = reinterpret_cast<WindowData*>(param);
+        const int id = static_cast<int>(GetDlgCtrlID(child));
+        if (id >= ID_PALETTE_BASE && id < ID_PALETTE_BASE + 128) {
+            ShowWindow(child, data->app->state().effect == Effect::Rainbow ||
+                               data->app->state().effect == Effect::Text
+                           ? SW_HIDE : SW_SHOW);
+        }
+        return TRUE;
+    }, reinterpret_cast<LPARAM>(&data));
 }
 
 void createEffectPage(HWND window, WindowData& data)
@@ -329,6 +371,16 @@ void createEffectPage(HWND window, WindowData& data)
         ID_SOLID,
         text(state.language, "solid"),
         273,
+        8,
+        62,
+        30
+    );
+
+    button(
+        data.effectPage,
+        ID_STOP,
+        text(state.language, "stop"),
+        340,
         8,
         62,
         30
@@ -417,8 +469,9 @@ void createEffectPage(HWND window, WindowData& data)
         text(state.language, "palette"),
         5,
         168,
-        230,
-        22
+        180,
+        22,
+        ID_PALETTE_BASE - 1
     );
 
     label(
@@ -427,7 +480,8 @@ void createEffectPage(HWND window, WindowData& data)
         190,
         168,
         255,
-        22
+        22,
+        ID_PALETTE_BASE - 2
     );
 
     const int startX = 5;
@@ -554,6 +608,50 @@ void createSystemPage(HWND window, WindowData& data)
     button(data.systemPage, ID_GPU, text(state.language, "gpu"), 145, 4, 58, 30);
     button(data.systemPage, ID_RAM, text(state.language, "ram"), 208, 4, 58, 30);
     button(data.systemPage, ID_TEMP, text(state.language, "temp"), 271, 4, 58, 30);
+    button(data.systemPage, ID_STOP, text(state.language, "stop"), 335, 4, 62, 30);
+}
+
+
+void createTextPage(HWND window, WindowData& data)
+{
+    const auto& state = data.app->state();
+    data.textPage = CreateWindowW(L"STATIC", nullptr,
+        WS_CHILD | WS_VISIBLE | SS_WHITERECT,
+        15, 105, 450, 490, window, nullptr, GetModuleHandleW(nullptr), nullptr);
+    enablePageMessageForwarding(data.textPage);
+
+    label(data.textPage, text(state.language, "text_input"), 5, 12, 100, 22);
+    data.textInput = CreateWindowW(L"EDIT", L"",
+        WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL,
+        5, 42, 300, 28, data.textPage,
+        reinterpret_cast<HMENU>(static_cast<INT_PTR>(ID_TEXT_INPUT)),
+        GetModuleHandleW(nullptr), nullptr);
+    data.textHint = label(data.textPage, text(state.language, "text_hint"),
+        5, 75, 320, 22);
+    button(data.textPage, ID_TEXT_START, text(state.language, "text_start"),
+        315, 41, 60, 30);
+    button(data.textPage, ID_STOP, text(state.language, "stop"),
+        382, 41, 60, 30);
+}
+
+void createSettingsPage(HWND window, WindowData& data)
+{
+    const auto& state = data.app->state();
+    data.settingsPage = CreateWindowW(L"STATIC", nullptr,
+        WS_CHILD | WS_VISIBLE | SS_WHITERECT,
+        15, 105, 450, 490, window, nullptr, GetModuleHandleW(nullptr), nullptr);
+    enablePageMessageForwarding(data.settingsPage);
+
+    data.trayCheck = CreateWindowW(
+        L"BUTTON", text(state.language, "tray_on_close"),
+        WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
+        5, 15, 410, 26, data.settingsPage,
+        reinterpret_cast<HMENU>(static_cast<INT_PTR>(ID_TRAY_ON_CLOSE)),
+        GetModuleHandleW(nullptr), nullptr);
+    SendMessageW(data.trayCheck, BM_SETCHECK,
+        state.trayOnClose ? BST_CHECKED : BST_UNCHECKED, 0);
+    label(data.settingsPage, text(state.language, "settings_note"),
+        25, 48, 400, 45);
 }
 
 void createControls(HWND window, WindowData& data)
@@ -649,21 +747,11 @@ void createControls(HWND window, WindowData& data)
 
     createSystemPage(window, data);
 
-    createPlaceholderPage(
-        window,
-        data,
-        2,
-        "placeholder_text"
-    );
-
-    createPlaceholderPage(
-        window,
-        data,
-        3,
-        "placeholder_settings"
-    );
+    createTextPage(window, data);
+    createSettingsPage(window, data);
 
     selectTab(data, 0);
+    updatePaletteVisibility(data);
 
     data.app->refreshMidiPorts(
         data.portCombo
@@ -968,6 +1056,44 @@ void drawPreview(
 
 } // namespace
 
+
+void addTrayIcon(HWND window, WindowData& data)
+{
+    if (data.trayIconVisible) return;
+    NOTIFYICONDATAW nid{};
+    nid.cbSize = sizeof(nid);
+    nid.hWnd = window;
+    nid.uID = 1;
+    nid.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
+    nid.uCallbackMessage = WM_TRAYICON;
+    nid.hIcon = LoadIconW(nullptr, IDI_APPLICATION);
+    lstrcpynW(nid.szTip, L"Launchpad RGB Ambient", ARRAYSIZE(nid.szTip));
+    if (Shell_NotifyIconW(NIM_ADD, &nid)) data.trayIconVisible = true;
+}
+
+void removeTrayIcon(HWND window, WindowData& data)
+{
+    if (!data.trayIconVisible) return;
+    NOTIFYICONDATAW nid{};
+    nid.cbSize = sizeof(nid);
+    nid.hWnd = window;
+    nid.uID = 1;
+    Shell_NotifyIconW(NIM_DELETE, &nid);
+    data.trayIconVisible = false;
+}
+
+void showTrayMenu(HWND window)
+{
+    HMENU menu = CreatePopupMenu();
+    AppendMenuW(menu, MF_STRING, ID_TRAY_OPEN, L"打开");
+    AppendMenuW(menu, MF_STRING, ID_TRAY_EXIT, L"退出");
+    POINT point{};
+    GetCursorPos(&point);
+    SetForegroundWindow(window);
+    TrackPopupMenu(menu, TPM_RIGHTBUTTON, point.x, point.y, 0, window, nullptr);
+    DestroyMenu(menu);
+}
+
 bool MainWindow::registerClass(HINSTANCE instance)
 {
     WNDCLASSW wc{};
@@ -979,7 +1105,7 @@ bool MainWindow::registerClass(HINSTANCE instance)
         instance;
 
     wc.lpszClassName =
-        L"LaunchpadRGBAmbientV04";
+        L"LaunchpadRGBAmbientV05";
 
     wc.hCursor =
         LoadCursorW(
@@ -1001,8 +1127,8 @@ HWND MainWindow::create(
     Application* app)
 {
     HWND window = CreateWindowW(
-        L"LaunchpadRGBAmbientV04",
-        L"Launchpad RGB Ambient - v0.4.1",
+        L"LaunchpadRGBAmbientV05",
+        L"Launchpad RGB Ambient - v0.5",
         WS_OVERLAPPED
             | WS_CAPTION
             | WS_SYSMENU
@@ -1027,7 +1153,7 @@ HWND MainWindow::create(
     // changes the window text later.
     SetWindowTextW(
         window,
-        L"Launchpad RGB Ambient - v0.4.1"
+        L"Launchpad RGB Ambient - v0.5"
     );
 
     ShowWindow(
@@ -1260,30 +1386,35 @@ LRESULT CALLBACK MainWindow::procedure(
             data->app->setEffect(
                 Effect::Rainbow
             );
+            updatePaletteVisibility(*data);
             break;
 
         case ID_BREATHE:
             data->app->setEffect(
                 Effect::Breathe
             );
+            updatePaletteVisibility(*data);
             break;
 
         case ID_WAVE:
             data->app->setEffect(
                 Effect::Wave
             );
+            updatePaletteVisibility(*data);
             break;
 
         case ID_STARS:
             data->app->setEffect(
                 Effect::Stars
             );
+            updatePaletteVisibility(*data);
             break;
 
         case ID_SOLID:
             data->app->setEffect(
                 Effect::Solid
             );
+            updatePaletteVisibility(*data);
             break;
 
         case ID_CPU:
@@ -1300,6 +1431,48 @@ LRESULT CALLBACK MainWindow::procedure(
 
         case ID_TEMP:
             data->app->toggleTemperature();
+            break;
+
+        case ID_STOP:
+            data->app->stopAll();
+            break;
+
+        case ID_TEXT_START: {
+            wchar_t buffer[256]{};
+            GetWindowTextW(data->textInput, buffer, ARRAYSIZE(buffer));
+            std::wstring value(buffer);
+            bool valid = !value.empty();
+            for (wchar_t ch : value) {
+                if (!((ch >= L'A' && ch <= L'Z') || (ch >= L'a' && ch <= L'z'))) {
+                    valid = false;
+                    break;
+                }
+            }
+            if (!valid) {
+                SetWindowTextW(data->textHint, text(data->app->state().language, "text_invalid"));
+                break;
+            }
+            SetWindowTextW(data->textHint, text(data->app->state().language, "text_hint"));
+            data->app->startText(value);
+            break;
+        }
+
+        case ID_TRAY_ON_CLOSE:
+            data->app->state().trayOnClose =
+                SendMessageW(data->trayCheck, BM_GETCHECK, 0, 0) == BST_CHECKED;
+            break;
+
+        case ID_TRAY_OPEN:
+            removeTrayIcon(window, *data);
+            ShowWindow(window, SW_SHOW);
+            ShowWindow(window, SW_RESTORE);
+            SetForegroundWindow(window);
+            break;
+
+        case ID_TRAY_EXIT:
+            data->forceExit = true;
+            removeTrayIcon(window, *data);
+            DestroyWindow(window);
             break;
 
         default:
@@ -1433,7 +1606,28 @@ LRESULT CALLBACK MainWindow::procedure(
         return 0;
     }
 
+    case WM_CLOSE:
+        if (data && data->app->state().trayOnClose && !data->forceExit) {
+            addTrayIcon(window, *data);
+            ShowWindow(window, SW_HIDE);
+            return 0;
+        }
+        DestroyWindow(window);
+        return 0;
+
+    case WM_TRAYICON:
+        if (data && (lParam == WM_LBUTTONDBLCLK || lParam == WM_LBUTTONUP)) {
+            removeTrayIcon(window, *data);
+            ShowWindow(window, SW_SHOW);
+            ShowWindow(window, SW_RESTORE);
+            SetForegroundWindow(window);
+        } else if (data && (lParam == WM_RBUTTONUP || lParam == WM_CONTEXTMENU)) {
+            showTrayMenu(window);
+        }
+        return 0;
+
     case WM_DESTROY:
+        if (data) removeTrayIcon(window, *data);
         KillTimer(
     window,
     1

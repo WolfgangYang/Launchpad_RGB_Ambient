@@ -19,6 +19,8 @@ public:
 
     void setEffect(Effect effect);
     void setPaletteColor(int index);
+    void startText(const std::wstring& content);
+    void stopAll();
     void toggleCpu();
     void toggleGpu();
     void toggleRam();

@@ -5,7 +5,7 @@
 namespace lra {
 
 namespace {
-constexpr wchar_t kTitle[] = L"Launchpad RGB Ambient — v0.4.1";
+constexpr wchar_t kTitle[] = L"Launchpad RGB Ambient — v0.5";
 }
 
 void detectLanguage(AppState& state)
@@ -42,6 +42,13 @@ LPCWSTR text(Language language, const char* key)
     if (!std::strcmp(key, "wave")) return zh ? L"波纹" : L"Wave";
     if (!std::strcmp(key, "stars")) return zh ? L"星空" : L"Stars";
     if (!std::strcmp(key, "solid")) return zh ? L"纯色" : L"Solid";
+    if (!std::strcmp(key, "stop")) return zh ? L"停止" : L"Stop";
+    if (!std::strcmp(key, "text_input")) return zh ? L"输入文字" : L"Text";
+    if (!std::strcmp(key, "text_hint")) return zh ? L"仅支持英文字母 A-Z / a-z" : L"English letters only: A-Z / a-z";
+    if (!std::strcmp(key, "text_start")) return zh ? L"开始显示" : L"Start";
+    if (!std::strcmp(key, "text_invalid")) return zh ? L"文字只能包含英文字母 A-Z / a-z" : L"Text can contain English letters A-Z / a-z only";
+    if (!std::strcmp(key, "tray_on_close")) return zh ? L"关闭窗口时隐藏到系统托盘" : L"Hide to system tray when closing";
+    if (!std::strcmp(key, "settings_note")) return zh ? L"勾选后点击关闭按钮将隐藏窗口，而不是退出程序。" : L"When enabled, closing the window hides it instead of exiting.";
     if (!std::strcmp(key, "monitor")) return zh ? L"状态指示" : L"Monitoring";
     if (!std::strcmp(key, "cpu")) return L"CPU";
     if (!std::strcmp(key, "gpu")) return L"GPU";
