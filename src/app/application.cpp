@@ -64,7 +64,75 @@ void Application::refreshMidiPorts(HWND combo)
         );
     }
 }
+void Application::syncMidiPorts(
+    HWND combo,
+    HWND statusLabel)
+{
+    // The render loop already detects an unplugged device and
+    // invalidates the MIDI handle. This function only keeps the
+    // device list synchronized with the actual Windows MIDI ports.
+    if (midi_.isOpen()) {
+        return;
+    }
 
+    const auto ports = midi_.enumerate();
+
+    const LRESULT currentCount =
+        SendMessageW(
+            combo,
+            CB_GETCOUNT,
+            0,
+            0
+        );
+
+    bool changed =
+        currentCount != static_cast<LRESULT>(ports.size());
+
+    if (!changed) {
+        for (int i = 0; i < currentCount; ++i) {
+            const UINT currentDeviceIndex =
+                static_cast<UINT>(
+                    SendMessageW(
+                        combo,
+                        CB_GETITEMDATA,
+                        i,
+                        0
+                    )
+                );
+
+            wchar_t currentName[256]{};
+
+            SendMessageW(
+                combo,
+                CB_GETLBTEXT,
+                i,
+                reinterpret_cast<LPARAM>(currentName)
+            );
+
+            if (
+                currentDeviceIndex != ports[i].deviceIndex
+                || std::wstring(currentName) != ports[i].name
+            ) {
+                changed = true;
+                break;
+            }
+        }
+    }
+
+    if (!changed) {
+        return;
+    }
+
+    refreshMidiPorts(combo);
+
+    SetWindowTextW(
+        statusLabel,
+        text(
+            state_.language,
+            "notconnected"
+        )
+    );
+}
 bool Application::connectMidi(HWND combo, HWND statusLabel)
 {
     const int selected = static_cast<int>(
