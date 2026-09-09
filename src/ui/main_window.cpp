@@ -1125,6 +1125,12 @@ LRESULT CALLBACK MainWindow::procedure(
             1000,
             nullptr
         );
+        SetTimer(
+            window,
+            3,
+            100,
+            nullptr
+        );
 
         return 0;
 
