@@ -19,11 +19,13 @@ void EffectEngine::render(AppState& state, LedFrame& frame, FunctionKeyFrame& fu
     // MK2 has a fixed 128-color hardware palette. Keep the preview and the
     // physical Launchpad in the same practical gamut. Text is intentionally
     // kept crisp and is therefore quantized too.
+    if (state.effect != Effect::Breathe) {
     for (auto& row : frame) {
         for (auto& pixel : row) {
             pixel = snapToPalette(pixel);
         }
     }
+}
 
     renderFunctionKeys(frame, functionKeys);
 
@@ -123,13 +125,13 @@ void EffectEngine::renderBase(const AppState& state, LedFrame& frame) const
                 break;
             }
 
-            case Effect::Breathe: {
-                const double value =
-                    (0.5 + 0.5 * std::sin(state.animationPhase * 2.0)) * brightness;
-                const Rgb base = selectedPaletteRgb(static_cast<std::uint8_t>(state.paletteIndex));
-                rgb = {base.r * value, base.g * value, base.b * value};
-                break;
-            }
+           case Effect::Breathe: {
+    const double value =
+        (0.5 + 0.5 * std::sin(state.animationPhase * 2.0)) * brightness;
+    const Rgb base = selectedPaletteRgb(static_cast<std::uint8_t>(state.paletteIndex));
+    rgb = {base.r * value, base.g * value, base.b * value};
+    break;
+}
 
             case Effect::Wave: {
                 const double dx = x - 3.5;
