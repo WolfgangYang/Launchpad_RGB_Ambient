@@ -288,67 +288,12 @@ void createEffectPage(HWND window, WindowData& data)
         data.effectPage
     );
 
-    label(
-        data.effectPage,
-        text(state.language, "midi"),
-        5,
-        8,
-        45,
-        22
-    );
-
-    data.portCombo = CreateWindowW(
-        L"COMBOBOX",
-        nullptr,
-        WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST,
-        55,
-        5,
-        330,
-        180,
-        data.effectPage,
-        reinterpret_cast<HMENU>(
-            static_cast<INT_PTR>(ID_PORT)
-        ),
-        GetModuleHandleW(nullptr),
-        nullptr
-    );
-
-    button(
-        data.effectPage,
-        ID_REFRESH,
-        text(state.language, "refresh"),
-        5,
-        38,
-        92,
-        30
-    );
-
-    button(
-        data.effectPage,
-        ID_CONNECT,
-        text(state.language, "connect"),
-        103,
-        38,
-        92,
-        30
-    );
-
-    data.status = label(
-        data.effectPage,
-        text(state.language, "notconnected"),
-        205,
-        43,
-        180,
-        22,
-        ID_STATUS
-    );
-
     button(
         data.effectPage,
         ID_RAINBOW,
         text(state.language, "rainbow"),
         5,
-        78,
+        8,
         62,
         30
     );
@@ -358,7 +303,7 @@ void createEffectPage(HWND window, WindowData& data)
         ID_BREATHE,
         text(state.language, "breathe"),
         72,
-        78,
+        8,
         62,
         30
     );
@@ -368,7 +313,7 @@ void createEffectPage(HWND window, WindowData& data)
         ID_WAVE,
         text(state.language, "wave"),
         139,
-        78,
+        8,
         62,
         30
     );
@@ -378,7 +323,7 @@ void createEffectPage(HWND window, WindowData& data)
         ID_STARS,
         text(state.language, "stars"),
         206,
-        78,
+        8,
         62,
         30
     );
@@ -388,57 +333,8 @@ void createEffectPage(HWND window, WindowData& data)
         ID_SOLID,
         text(state.language, "solid"),
         273,
-        78,
+        8,
         62,
-        30
-    );
-
-    label(
-        data.effectPage,
-        text(state.language, "monitor"),
-        5,
-        118,
-        75,
-        22
-    );
-
-    button(
-        data.effectPage,
-        ID_CPU,
-        text(state.language, "cpu"),
-        82,
-        114,
-        58,
-        30
-    );
-
-    button(
-        data.effectPage,
-        ID_GPU,
-        text(state.language, "gpu"),
-        145,
-        114,
-        58,
-        30
-    );
-
-    button(
-        data.effectPage,
-        ID_RAM,
-        text(state.language, "ram"),
-        208,
-        114,
-        58,
-        30
-    );
-
-    button(
-        data.effectPage,
-        ID_TEMP,
-        text(state.language, "temp"),
-        271,
-        114,
-        58,
         30
     );
 
@@ -446,7 +342,7 @@ void createEffectPage(HWND window, WindowData& data)
         data.effectPage,
         text(state.language, "brightness"),
         5,
-        158,
+        88,
         70,
         22
     );
@@ -456,7 +352,7 @@ void createEffectPage(HWND window, WindowData& data)
         nullptr,
         WS_CHILD | WS_VISIBLE,
         78,
-        153,
+        83,
         305,
         30,
         data.effectPage,
@@ -485,7 +381,7 @@ void createEffectPage(HWND window, WindowData& data)
         data.effectPage,
         text(state.language, "speed"),
         5,
-        198,
+        128,
         70,
         22
     );
@@ -495,7 +391,7 @@ void createEffectPage(HWND window, WindowData& data)
         nullptr,
         WS_CHILD | WS_VISIBLE,
         78,
-        193,
+        123,
         305,
         30,
         data.effectPage,
@@ -524,13 +420,22 @@ void createEffectPage(HWND window, WindowData& data)
         data.effectPage,
         text(state.language, "palette"),
         5,
-        238,
+        168,
         230,
         22
     );
 
+    label(
+        data.effectPage,
+        text(state.language, "palette_note"),
+        190,
+        168,
+        255,
+        22
+    );
+
     const int startX = 5;
-    const int startY = 266;
+    const int startY = 196;
     const int cell = 22;
     const int gap = 2;
 
@@ -624,6 +529,94 @@ void createPlaceholderPage(
     }
 }
 
+void createSystemPage(HWND window, WindowData& data)
+{
+    const auto& state = data.app->state();
+
+    data.systemPage = CreateWindowW(
+        L"STATIC",
+        nullptr,
+        WS_CHILD | WS_VISIBLE | SS_WHITERECT,
+        15,
+        70,
+        450,
+        525,
+        window,
+        nullptr,
+        GetModuleHandleW(nullptr),
+        nullptr
+    );
+
+    enablePageMessageForwarding(data.systemPage);
+
+    label(
+        data.systemPage,
+        text(state.language, "midi"),
+        5,
+        8,
+        45,
+        22
+    );
+
+    data.portCombo = CreateWindowW(
+        L"COMBOBOX",
+        nullptr,
+        WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST,
+        55,
+        5,
+        330,
+        180,
+        data.systemPage,
+        reinterpret_cast<HMENU>(static_cast<INT_PTR>(ID_PORT)),
+        GetModuleHandleW(nullptr),
+        nullptr
+    );
+
+    button(
+        data.systemPage,
+        ID_REFRESH,
+        text(state.language, "refresh"),
+        5,
+        38,
+        92,
+        30
+    );
+
+    button(
+        data.systemPage,
+        ID_CONNECT,
+        text(state.language, "connect"),
+        103,
+        38,
+        92,
+        30
+    );
+
+    data.status = label(
+        data.systemPage,
+        text(state.language, "notconnected"),
+        205,
+        43,
+        180,
+        22,
+        ID_STATUS
+    );
+
+    label(
+        data.systemPage,
+        text(state.language, "monitor"),
+        5,
+        88,
+        75,
+        22
+    );
+
+    button(data.systemPage, ID_CPU, text(state.language, "cpu"), 82, 84, 58, 30);
+    button(data.systemPage, ID_GPU, text(state.language, "gpu"), 145, 84, 58, 30);
+    button(data.systemPage, ID_RAM, text(state.language, "ram"), 208, 84, 58, 30);
+    button(data.systemPage, ID_TEMP, text(state.language, "temp"), 271, 84, 58, 30);
+}
+
 void createDevicePage(WindowData& data)
 {
     const auto& state = data.app->state();
@@ -684,12 +677,7 @@ void createControls(HWND window, WindowData& data)
 
     createEffectPage(window, data);
 
-    createPlaceholderPage(
-        window,
-        data,
-        1,
-        "placeholder_system"
-    );
+    createSystemPage(window, data);
 
     createPlaceholderPage(
         window,
