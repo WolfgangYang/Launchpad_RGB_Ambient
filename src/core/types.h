@@ -49,6 +49,14 @@ struct AppState {
 
     std::wstring textContent;
     double textOffset = 0.0;
+    int textX = 0;
+    int textY = 0;
+    int textSize = 5;
+    int textSpeed = 20;
+    int textAnimation = 1; // 0=static, 1=scroll, 2=fade in, 3=fade out, 4=fade in-out, 5=blink
+    int textRed = 63;
+    int textGreen = 63;
+    int textBlue = 63;
     bool trayOnClose = false;
 
     MonitoringState monitoring;

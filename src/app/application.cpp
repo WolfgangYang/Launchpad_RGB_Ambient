@@ -183,12 +183,6 @@ void Application::startText(const std::wstring& content)
     }
 
     state_.textContent = content;
-    for (auto& ch : state_.textContent) {
-        if (ch >= L'a' && ch <= L'z') {
-            ch = static_cast<wchar_t>(ch - L'a' + L'A');
-        }
-    }
-
     state_.effect = Effect::Text;
     state_.textOffset = -8.0;
     state_.effectRunning = true;

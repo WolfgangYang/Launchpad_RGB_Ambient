@@ -16,7 +16,7 @@ public:
 private:
     void renderBase(const AppState& state, LedFrame& frame) const;
     void renderIndicators(const AppState& state, LedFrame& frame) const;
-    void renderFunctionKeys(const LedFrame& frame, FunctionKeyFrame& functionKeys) const;
+    void renderFunctionKeys(const AppState& state, const LedFrame& frame, FunctionKeyFrame& functionKeys) const;
 };
 
 } // namespace lra
