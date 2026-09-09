@@ -32,8 +32,13 @@ void Application::refreshMidiPorts(HWND combo)
 
     for (const auto& port : ports) {
         const int index = static_cast<int>(
-            SendMessageW(combo, CB_ADDSTRING, 0,
-                reinterpret_cast<LPARAM>(port.name.c_str())));
+            SendMessageW(
+                combo,
+                CB_ADDSTRING,
+                0,
+                reinterpret_cast<LPARAM>(port.name.c_str())
+            )
+        );
 
         SendMessageW(
             combo,
@@ -47,7 +52,8 @@ void Application::refreshMidiPorts(HWND combo)
         }
     }
 
-    const LRESULT count = SendMessageW(combo, CB_GETCOUNT, 0, 0);
+    const LRESULT count =
+        SendMessageW(combo, CB_GETCOUNT, 0, 0);
 
     if (count > 0) {
         SendMessageW(
@@ -62,7 +68,8 @@ void Application::refreshMidiPorts(HWND combo)
 bool Application::connectMidi(HWND combo, HWND statusLabel)
 {
     const int selected = static_cast<int>(
-        SendMessageW(combo, CB_GETCURSEL, 0, 0));
+        SendMessageW(combo, CB_GETCURSEL, 0, 0)
+    );
 
     if (selected < 0) {
         SetWindowTextW(
@@ -73,7 +80,8 @@ bool Application::connectMidi(HWND combo, HWND statusLabel)
     }
 
     const UINT deviceIndex = static_cast<UINT>(
-        SendMessageW(combo, CB_GETITEMDATA, selected, 0));
+        SendMessageW(combo, CB_GETITEMDATA, selected, 0)
+    );
 
     if (!midi_.open(deviceIndex)) {
         SetWindowTextW(
@@ -161,21 +169,44 @@ void Application::render()
             const Rgb& rgb = frame_[y][x];
 
             const BYTE red = static_cast<BYTE>(
-                std::clamp(rgb.r, 0.0, 1.0) * 63.0);
+                std::clamp(rgb.r, 0.0, 1.0) * 63.0
+            );
 
             const BYTE green = static_cast<BYTE>(
-                std::clamp(rgb.g, 0.0, 1.0) * 63.0);
+                std::clamp(rgb.g, 0.0, 1.0) * 63.0
+            );
 
             const BYTE blue = static_cast<BYTE>(
-                std::clamp(rgb.b, 0.0, 1.0) * 63.0);
-
-            midi_.setLed(
-                x,
-                y,
-                red,
-                green,
-                blue
+                std::clamp(rgb.b, 0.0, 1.0) * 63.0
             );
+
+            if (!midi_.setLed(
+                    x,
+                    y,
+                    red,
+                    green,
+                    blue)) {
+
+                // The device disappeared while rendering.
+                // Restore the software to its initial state.
+                state_.effectRunning = false;
+
+                for (auto& row : frame_) {
+                    for (auto& pixel : row) {
+                        pixel = {};
+                    }
+                }
+
+                for (auto& key : functionKeys_) {
+                    key = {};
+                }
+
+                if (window_) {
+                    InvalidateRect(window_, nullptr, FALSE);
+                }
+
+                return;
+            }
         }
     }
 
@@ -184,20 +215,41 @@ void Application::render()
         const Rgb& rgb = functionKeys_[i];
 
         const BYTE red = static_cast<BYTE>(
-            std::clamp(rgb.r, 0.0, 1.0) * 63.0);
+            std::clamp(rgb.r, 0.0, 1.0) * 63.0
+        );
 
         const BYTE green = static_cast<BYTE>(
-            std::clamp(rgb.g, 0.0, 1.0) * 63.0);
+            std::clamp(rgb.g, 0.0, 1.0) * 63.0
+        );
 
         const BYTE blue = static_cast<BYTE>(
-            std::clamp(rgb.b, 0.0, 1.0) * 63.0);
-
-        midi_.setFunctionKey(
-            i,
-            red,
-            green,
-            blue
+            std::clamp(rgb.b, 0.0, 1.0) * 63.0
         );
+
+        if (!midi_.setFunctionKey(
+                i,
+                red,
+                green,
+                blue)) {
+
+            state_.effectRunning = false;
+
+            for (auto& row : frame_) {
+                for (auto& pixel : row) {
+                    pixel = {};
+                }
+            }
+
+            for (auto& key : functionKeys_) {
+                key = {};
+            }
+
+            if (window_) {
+                InvalidateRect(window_, nullptr, FALSE);
+            }
+
+            return;
+        }
     }
 
     // Top-side function keys, left to right.
@@ -205,20 +257,41 @@ void Application::render()
         const Rgb& rgb = functionKeys_[8 + i];
 
         const BYTE red = static_cast<BYTE>(
-            std::clamp(rgb.r, 0.0, 1.0) * 63.0);
+            std::clamp(rgb.r, 0.0, 1.0) * 63.0
+        );
 
         const BYTE green = static_cast<BYTE>(
-            std::clamp(rgb.g, 0.0, 1.0) * 63.0);
+            std::clamp(rgb.g, 0.0, 1.0) * 63.0
+        );
 
         const BYTE blue = static_cast<BYTE>(
-            std::clamp(rgb.b, 0.0, 1.0) * 63.0);
-
-        midi_.setTopFunctionKey(
-            i,
-            red,
-            green,
-            blue
+            std::clamp(rgb.b, 0.0, 1.0) * 63.0
         );
+
+        if (!midi_.setTopFunctionKey(
+                i,
+                red,
+                green,
+                blue)) {
+
+            state_.effectRunning = false;
+
+            for (auto& row : frame_) {
+                for (auto& pixel : row) {
+                    pixel = {};
+                }
+            }
+
+            for (auto& key : functionKeys_) {
+                key = {};
+            }
+
+            if (window_) {
+                InvalidateRect(window_, nullptr, FALSE);
+            }
+
+            return;
+        }
     }
 }
 
