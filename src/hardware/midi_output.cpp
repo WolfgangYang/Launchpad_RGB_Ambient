@@ -16,17 +16,50 @@ std::vector<MidiPort> MidiOutput::enumerate() const
 
     for (UINT i = 0; i < count; ++i) {
         MIDIOUTCAPSW caps{};
-        if (midiOutGetDevCapsW(i, &caps, sizeof(caps)) == MMSYSERR_NOERROR) {
-            ports.push_back({i, caps.szPname});
+
+        if (midiOutGetDevCapsW(
+                i,
+                &caps,
+                sizeof(caps)) != MMSYSERR_NOERROR) {
+            continue;
         }
+
+        const std::wstring name = caps.szPname;
+
+        // These are Windows software MIDI devices and are not useful
+        // as physical Launchpad outputs.
+        if (name == L"Microsoft GS Wavetable Synth" ||
+            name == L"Microsoft MIDI Mapper") {
+            continue;
+        }
+
+        ports.push_back({ i, name });
     }
+
     return ports;
 }
 
 bool MidiOutput::open(UINT deviceIndex)
 {
     close();
-    return midiOutOpen(&device_, deviceIndex, 0, 0, CALLBACK_NULL) == MMSYSERR_NOERROR;
+
+    HMIDIOUT newDevice = nullptr;
+
+    const MMRESULT result = midiOutOpen(
+        &newDevice,
+        deviceIndex,
+        0,
+        0,
+        CALLBACK_NULL
+    );
+
+    if (result != MMSYSERR_NOERROR) {
+        device_ = nullptr;
+        return false;
+    }
+
+    device_ = newDevice;
+    return true;
 }
 
 void MidiOutput::close()
@@ -35,10 +68,32 @@ void MidiOutput::close()
         return;
     }
 
+    // Only clear the Launchpad while the device is still valid.
+    // If the device was already unplugged, invalidateDevice()
+    // has already cleared device_ and this path is skipped.
     clearGrid();
-    midiOutReset(device_);
-    midiOutClose(device_);
+
+    if (device_) {
+        midiOutReset(device_);
+        midiOutClose(device_);
+        device_ = nullptr;
+    }
+}
+
+void MidiOutput::invalidateDevice()
+{
+    if (!device_) {
+        return;
+    }
+
+    // The physical device is no longer usable. Do not call
+    // clearGrid() here: that would attempt another 80 MIDI messages
+    // against an already disconnected device.
+    HMIDIOUT device = device_;
     device_ = nullptr;
+
+    midiOutReset(device);
+    midiOutClose(device);
 }
 
 bool MidiOutput::sendSysEx(const BYTE* data, DWORD length)
@@ -48,25 +103,65 @@ bool MidiOutput::sendSysEx(const BYTE* data, DWORD length)
     }
 
     MIDIHDR header{};
-    header.lpData = reinterpret_cast<LPSTR>(const_cast<BYTE*>(data));
+    header.lpData =
+        reinterpret_cast<LPSTR>(const_cast<BYTE*>(data));
     header.dwBufferLength = length;
 
-    if (midiOutPrepareHeader(device_, &header, sizeof(header)) != MMSYSERR_NOERROR) {
+    if (midiOutPrepareHeader(
+            device_,
+            &header,
+            sizeof(header)) != MMSYSERR_NOERROR) {
+        invalidateDevice();
         return false;
     }
 
-    const MMRESULT result = midiOutLongMsg(device_, &header, sizeof(header));
+    const MMRESULT result =
+        midiOutLongMsg(device_, &header, sizeof(header));
+
+    // If the driver immediately reports an error, the device is
+    // most likely no longer available.
+    if (result != MMSYSERR_NOERROR) {
+        midiOutUnprepareHeader(
+            device_,
+            &header,
+            sizeof(header));
+
+        invalidateDevice();
+        return false;
+    }
 
     const DWORD start = GetTickCount();
+
     while ((header.dwFlags & MHDR_DONE) == 0) {
         if (GetTickCount() - start > 500) {
-            break;
+            midiOutUnprepareHeader(
+                device_,
+                &header,
+                sizeof(header));
+
+            // Treat a long-stuck SysEx transfer as a disconnected
+            // or unusable device instead of blocking the UI forever.
+            invalidateDevice();
+            return false;
         }
+
         Sleep(1);
     }
 
-    midiOutUnprepareHeader(device_, &header, sizeof(header));
-    return result == MMSYSERR_NOERROR && (header.dwFlags & MHDR_DONE) != 0;
+    const bool completed =
+        (header.dwFlags & MHDR_DONE) != 0;
+
+    midiOutUnprepareHeader(
+        device_,
+        &header,
+        sizeof(header));
+
+    if (!completed) {
+        invalidateDevice();
+        return false;
+    }
+
+    return true;
 }
 
 int MidiOutput::launchpadFunctionKey(int index)
@@ -74,6 +169,7 @@ int MidiOutput::launchpadFunctionKey(int index)
     if (index < 0 || index > 7) {
         return 0;
     }
+
     // Physical order is top-to-bottom: 89, 79, ..., 19.
     return 89 - index * 10;
 }
@@ -83,6 +179,7 @@ int MidiOutput::launchpadTopFunctionKey(int index)
     if (index < 0 || index > 7) {
         return 0;
     }
+
     // Physical order is left-to-right: 104, 105, ..., 111.
     return 104 + index;
 }
@@ -92,12 +189,18 @@ int MidiOutput::launchpadLed(int x, int y)
     if (x < 0 || x > 7 || y < 0 || y > 7) {
         return 0;
     }
+
     return 11 + (7 - y) * 10 + x;
 }
 
-bool MidiOutput::setFunctionKey(int index, BYTE red, BYTE green, BYTE blue)
+bool MidiOutput::setFunctionKey(
+    int index,
+    BYTE red,
+    BYTE green,
+    BYTE blue)
 {
     const int led = launchpadFunctionKey(index);
+
     if (!device_ || led == 0) {
         return false;
     }
@@ -115,10 +218,14 @@ bool MidiOutput::setFunctionKey(int index, BYTE red, BYTE green, BYTE blue)
     return sendSysEx(message, sizeof(message));
 }
 
-
-bool MidiOutput::setTopFunctionKey(int index, BYTE red, BYTE green, BYTE blue)
+bool MidiOutput::setTopFunctionKey(
+    int index,
+    BYTE red,
+    BYTE green,
+    BYTE blue)
 {
     const int led = launchpadTopFunctionKey(index);
+
     if (!device_ || led == 0) {
         return false;
     }
@@ -136,8 +243,12 @@ bool MidiOutput::setTopFunctionKey(int index, BYTE red, BYTE green, BYTE blue)
     return sendSysEx(message, sizeof(message));
 }
 
-
-bool MidiOutput::setLed(int x, int y, BYTE red, BYTE green, BYTE blue)
+bool MidiOutput::setLed(
+    int x,
+    int y,
+    BYTE red,
+    BYTE green,
+    BYTE blue)
 {
     const int led = launchpadLed(x, y);
 
@@ -158,7 +269,6 @@ bool MidiOutput::setLed(int x, int y, BYTE red, BYTE green, BYTE blue)
     return sendSysEx(message, sizeof(message));
 }
 
-
 void MidiOutput::clearGrid()
 {
     if (!device_) {
@@ -167,13 +277,20 @@ void MidiOutput::clearGrid()
 
     for (int y = 0; y < 8; ++y) {
         for (int x = 0; x < 8; ++x) {
-            setLed(x, y, 0, 0, 0);
+            if (!setLed(x, y, 0, 0, 0)) {
+                return;
+            }
         }
     }
 
     for (int i = 0; i < 8; ++i) {
-        setFunctionKey(i, 0, 0, 0);
-        setTopFunctionKey(i, 0, 0, 0);
+        if (!setFunctionKey(i, 0, 0, 0)) {
+            return;
+        }
+
+        if (!setTopFunctionKey(i, 0, 0, 0)) {
+            return;
+        }
     }
 }
 
