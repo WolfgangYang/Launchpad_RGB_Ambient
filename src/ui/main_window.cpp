@@ -1384,15 +1384,22 @@ LRESULT CALLBACK MainWindow::procedure(
         return 0;
 
     case WM_TIMER:
-        if (wParam == 1) {
-            data->app->render();
-        }
+    if (wParam == 1) {
+        data->app->render();
+    }
 
-        if (wParam == 2) {
-            data->app->updateStatistics();
-        }
+    if (wParam == 2) {
+        data->app->updateStatistics();
+    }
 
-        return 0;
+    if (wParam == 3) {
+        data->app->syncMidiPorts(
+            data->portCombo,
+            data->status
+        );
+    }
+
+    return 0;
 
     case WM_PAINT: {
         PAINTSTRUCT ps{};
@@ -1428,14 +1435,19 @@ LRESULT CALLBACK MainWindow::procedure(
 
     case WM_DESTROY:
         KillTimer(
-            window,
-            1
-        );
+    window,
+    1
+);
 
-        KillTimer(
-            window,
-            2
-        );
+KillTimer(
+    window,
+    2
+);
+
+KillTimer(
+    window,
+    3
+);
 
         data->app->shutdown();
 
