@@ -15,6 +15,7 @@ public:
 
     void refreshMidiPorts(HWND combo);
     bool connectMidi(HWND combo, HWND statusLabel);
+    void syncMidiPorts(HWND combo, HWND statusLabel);
 
     void setEffect(Effect effect);
     void setPaletteColor(int index);
