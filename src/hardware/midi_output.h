@@ -34,6 +34,10 @@ public:
 private:
     HMIDIOUT device_ = nullptr;
 
+    // Mark the current MIDI device as unavailable without
+    // attempting to send any further MIDI messages.
+    void invalidateDevice();
+
     static int launchpadLed(int x, int y);
     static int launchpadFunctionKey(int index);
     static int launchpadTopFunctionKey(int index);
