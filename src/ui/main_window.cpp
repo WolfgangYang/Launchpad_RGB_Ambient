@@ -30,7 +30,6 @@ enum ControlId {
     ID_TAB_EFFECTS = 200,
     ID_TAB_SYSTEM,
     ID_TAB_TEXT,
-    ID_TAB_DEVICE,
     ID_TAB_SETTINGS,
     ID_TABS = 205,
     ID_PLACEHOLDER = 250,
@@ -46,7 +45,6 @@ struct WindowData {
     HWND effectPage = nullptr;
     HWND systemPage = nullptr;
     HWND textPage = nullptr;
-    HWND devicePage = nullptr;
     HWND settingsPage = nullptr;
     HFONT font = nullptr;
     HWND tabControl = nullptr;
@@ -201,11 +199,10 @@ void setPageVisibility(WindowData& data)
         data.effectPage,
         data.systemPage,
         data.textPage,
-        data.devicePage,
         data.settingsPage
     };
 
-    for (int i = 0; i < 5; ++i) {
+    for (int i = 0; i < 4; ++i) {
         ShowWindow(
             pages[i],
             i == data.tab ? SW_SHOW : SW_HIDE
@@ -221,8 +218,7 @@ void setPageVisibility(WindowData& data)
     case 0: page = data.effectPage; break;
     case 1: page = data.systemPage; break;
     case 2: page = data.textPage; break;
-    case 3: page = data.devicePage; break;
-    case 4: page = data.settingsPage; break;
+    case 3: page = data.settingsPage; break;
     }
 
     if (page) {
@@ -240,7 +236,7 @@ void setPageVisibility(WindowData& data)
 
 void selectTab(WindowData& data, int tab)
 {
-    data.tab = std::clamp(tab, 0, 4);
+    data.tab = std::clamp(tab, 0, 3);
 
     if (data.tabControl) {
         TabCtrl_SetCurSel(data.tabControl, data.tab);
@@ -275,9 +271,9 @@ void createEffectPage(HWND window, WindowData& data)
         nullptr,
         WS_CHILD | WS_VISIBLE | SS_WHITERECT,
         15,
-        70,
+        105,
         450,
-        525,
+        490,
         window,
         nullptr,
         GetModuleHandleW(nullptr),
@@ -494,10 +490,6 @@ void createPlaceholderPage(
     }
 
     if (index == 3) {
-        target = &data.devicePage;
-    }
-
-    if (index == 4) {
         target = &data.settingsPage;
     }
 
@@ -506,9 +498,9 @@ void createPlaceholderPage(
         nullptr,
         WS_CHILD | WS_VISIBLE | SS_WHITERECT,
         15,
-        70,
+        105,
         450,
-        525,
+        490,
         window,
         nullptr,
         GetModuleHandleW(nullptr),
@@ -538,9 +530,9 @@ void createSystemPage(HWND window, WindowData& data)
         nullptr,
         WS_CHILD | WS_VISIBLE | SS_WHITERECT,
         15,
-        70,
+        105,
         450,
-        525,
+        490,
         window,
         nullptr,
         GetModuleHandleW(nullptr),
@@ -551,9 +543,30 @@ void createSystemPage(HWND window, WindowData& data)
 
     label(
         data.systemPage,
-        text(state.language, "midi"),
+        text(state.language, "monitor"),
         5,
         8,
+        75,
+        22
+    );
+
+    button(data.systemPage, ID_CPU, text(state.language, "cpu"), 82, 4, 58, 30);
+    button(data.systemPage, ID_GPU, text(state.language, "gpu"), 145, 4, 58, 30);
+    button(data.systemPage, ID_RAM, text(state.language, "ram"), 208, 4, 58, 30);
+    button(data.systemPage, ID_TEMP, text(state.language, "temp"), 271, 4, 58, 30);
+}
+
+void createControls(HWND window, WindowData& data)
+{
+    const auto& state = data.app->state();
+
+    // Device selection is part of the main window rather than a tab,
+    // so it remains visible while switching between pages.
+    label(
+        window,
+        text(state.language, "midi"),
+        15,
+        12,
         45,
         22
     );
@@ -562,94 +575,52 @@ void createSystemPage(HWND window, WindowData& data)
         L"COMBOBOX",
         nullptr,
         WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST,
-        55,
-        5,
-        330,
+        60,
+        9,
+        300,
         180,
-        data.systemPage,
+        window,
         reinterpret_cast<HMENU>(static_cast<INT_PTR>(ID_PORT)),
         GetModuleHandleW(nullptr),
         nullptr
     );
 
     button(
-        data.systemPage,
+        window,
         ID_REFRESH,
         text(state.language, "refresh"),
-        5,
-        38,
-        92,
-        30
+        365,
+        7,
+        78,
+        28
     );
 
     button(
-        data.systemPage,
+        window,
         ID_CONNECT,
         text(state.language, "connect"),
-        103,
-        38,
-        92,
-        30
+        448,
+        7,
+        78,
+        28
     );
 
     data.status = label(
-        data.systemPage,
+        window,
         text(state.language, "notconnected"),
-        205,
-        43,
-        180,
+        532,
+        11,
+        190,
         22,
         ID_STATUS
     );
-
-    label(
-        data.systemPage,
-        text(state.language, "monitor"),
-        5,
-        88,
-        75,
-        22
-    );
-
-    button(data.systemPage, ID_CPU, text(state.language, "cpu"), 82, 84, 58, 30);
-    button(data.systemPage, ID_GPU, text(state.language, "gpu"), 145, 84, 58, 30);
-    button(data.systemPage, ID_RAM, text(state.language, "ram"), 208, 84, 58, 30);
-    button(data.systemPage, ID_TEMP, text(state.language, "temp"), 271, 84, 58, 30);
-}
-
-void createDevicePage(WindowData& data)
-{
-    const auto& state = data.app->state();
-
-    label(
-        data.devicePage,
-        text(state.language, "midi"),
-        20,
-        35,
-        70,
-        22
-    );
-
-    label(
-        data.devicePage,
-        text(state.language, "preview_hint"),
-        20,
-        75,
-        400,
-        60
-    );
-}
-
-void createControls(HWND window, WindowData& data)
-{
-    const auto& state = data.app->state();
 
     data.tabControl = CreateWindowW(
         WC_TABCONTROLW,
         nullptr,
         WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | TCS_TABS,
         15,
-        15,
+        48,
         426,
         32,
         window,
@@ -664,11 +635,10 @@ void createControls(HWND window, WindowData& data)
         text(state.language, "tab_effects"),
         text(state.language, "tab_system"),
         text(state.language, "tab_text"),
-        text(state.language, "tab_device"),
         text(state.language, "tab_settings")
     };
 
-    for (int i = 0; i < 5; ++i) {
+    for (int i = 0; i < 4; ++i) {
         TCITEMW item{};
         item.mask = TCIF_TEXT;
         item.pszText = const_cast<LPWSTR>(tabLabels[i]);
@@ -690,17 +660,8 @@ void createControls(HWND window, WindowData& data)
         window,
         data,
         3,
-        "placeholder_text"
-    );
-
-    createPlaceholderPage(
-        window,
-        data,
-        4,
         "placeholder_settings"
     );
-
-    createDevicePage(data);
 
     selectTab(data, 0);
 
@@ -717,7 +678,7 @@ void drawPreview(
     HFONT font)
 {
     const int panelX = 485;
-    const int panelY = 70;
+    const int panelY = 105;
     const int panelW = client.right - panelX - 18;
     const int panelH = client.bottom - panelY - 18;
 
@@ -1272,12 +1233,8 @@ LRESULT CALLBACK MainWindow::procedure(
             selectTab(*data, 2);
             break;
 
-        case ID_TAB_DEVICE:
-            selectTab(*data, 3);
-            break;
-
         case ID_TAB_SETTINGS:
-            selectTab(*data, 4);
+            selectTab(*data, 3);
             break;
 
         case ID_REFRESH:
