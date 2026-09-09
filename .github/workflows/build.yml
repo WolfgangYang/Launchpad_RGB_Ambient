@@ -25,5 +25,5 @@ jobs:
       - name: Upload EXE
         uses: actions/upload-artifact@v4
         with:
-          name: Launchpad_RGB_Ambient_v0.4
+          name: Launchpad_RGB_Ambient_v0.5
           path: build/Launchpad_RGB_Ambient.exe
