@@ -34,7 +34,6 @@ enum ControlId {
     ID_TEXT_START,
     ID_TEXT_X,
     ID_TEXT_Y,
-    ID_TEXT_SIZE,
     ID_TEXT_SPEED,
     ID_TEXT_ANIMATION,
     ID_TEXT_RED,
@@ -70,7 +69,6 @@ struct WindowData {
     HWND textHint = nullptr;
     HWND textX = nullptr;
     HWND textY = nullptr;
-    HWND textSize = nullptr;
     HWND textSpeed = nullptr;
     HWND textAnimation = nullptr;
     HWND textRed = nullptr;
@@ -656,15 +654,8 @@ void createTextPage(HWND window, WindowData& data)
     SendMessageW(data.textY, TBM_SETRANGE, TRUE, MAKELONG(-7, 7));
     SendMessageW(data.textY, TBM_SETPOS, TRUE, state.textY);
 
-    label(data.textPage, text(state.language, "text_size"), 5, 153, 90, 22);
-    data.textSize = CreateWindowW(L"COMBOBOX", nullptr, WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST, 100, 150, 145, 120, data.textPage, reinterpret_cast<HMENU>(static_cast<INT_PTR>(ID_TEXT_SIZE)), GetModuleHandleW(nullptr), nullptr);
-    SendMessageW(data.textSize, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(text(state.language, "text_small")));
-    SendMessageW(data.textSize, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(text(state.language, "text_medium")));
-    SendMessageW(data.textSize, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(text(state.language, "text_large")));
-    SendMessageW(data.textSize, CB_SETCURSEL, state.textSize == 3 ? 0 : state.textSize == 8 ? 2 : 1, 0);
-
-    label(data.textPage, text(state.language, "text_animation"), 255, 153, 75, 22);
-    data.textAnimation = CreateWindowW(L"COMBOBOX", nullptr, WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST, 330, 150, 112, 140, data.textPage, reinterpret_cast<HMENU>(static_cast<INT_PTR>(ID_TEXT_ANIMATION)), GetModuleHandleW(nullptr), nullptr);
+    label(data.textPage, text(state.language, "text_animation"), 155, 153, 75, 22);
+    data.textAnimation = CreateWindowW(L"COMBOBOX", nullptr, WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST, 230, 150, 212, 140, data.textPage, reinterpret_cast<HMENU>(static_cast<INT_PTR>(ID_TEXT_ANIMATION)), GetModuleHandleW(nullptr), nullptr);
     const LPCWSTR animations[] = { text(state.language, "text_static"), text(state.language, "text_scroll"), text(state.language, "text_fade_in"), text(state.language, "text_fade_out"), text(state.language, "text_fade_in_out"), text(state.language, "text_blink") };
     for (auto value : animations) SendMessageW(data.textAnimation, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(value));
     SendMessageW(data.textAnimation, CB_SETCURSEL, state.textAnimation, 0);
@@ -676,13 +667,13 @@ void createTextPage(HWND window, WindowData& data)
 
     label(data.textPage, text(state.language, "text_color"), 5, 236, 90, 22);
     label(data.textPage, text(state.language, "text_red"), 100, 236, 18, 22);
-    data.textRed = CreateWindowW(TRACKBAR_CLASSW, nullptr, WS_CHILD | WS_VISIBLE, 120, 231, 105, 30, data.textPage, reinterpret_cast<HMENU>(static_cast<INT_PTR>(ID_TEXT_RED)), GetModuleHandleW(nullptr), nullptr);
+    data.textRed = CreateWindowW(TRACKBAR_CLASSW, nullptr, WS_CHILD | WS_VISIBLE, 120, 231, 90, 30, data.textPage, reinterpret_cast<HMENU>(static_cast<INT_PTR>(ID_TEXT_RED)), GetModuleHandleW(nullptr), nullptr);
     SendMessageW(data.textRed, TBM_SETRANGE, TRUE, MAKELONG(0, 63)); SendMessageW(data.textRed, TBM_SETPOS, TRUE, state.textRed);
-    label(data.textPage, text(state.language, "text_green"), 235, 236, 18, 22);
-    data.textGreen = CreateWindowW(TRACKBAR_CLASSW, nullptr, WS_CHILD | WS_VISIBLE, 255, 231, 105, 30, data.textPage, reinterpret_cast<HMENU>(static_cast<INT_PTR>(ID_TEXT_GREEN)), GetModuleHandleW(nullptr), nullptr);
+    label(data.textPage, text(state.language, "text_green"), 220, 236, 18, 22);
+    data.textGreen = CreateWindowW(TRACKBAR_CLASSW, nullptr, WS_CHILD | WS_VISIBLE, 240, 231, 90, 30, data.textPage, reinterpret_cast<HMENU>(static_cast<INT_PTR>(ID_TEXT_GREEN)), GetModuleHandleW(nullptr), nullptr);
     SendMessageW(data.textGreen, TBM_SETRANGE, TRUE, MAKELONG(0, 63)); SendMessageW(data.textGreen, TBM_SETPOS, TRUE, state.textGreen);
-    label(data.textPage, text(state.language, "text_blue"), 370, 236, 18, 22);
-    data.textBlue = CreateWindowW(TRACKBAR_CLASSW, nullptr, WS_CHILD | WS_VISIBLE, 390, 231, 52, 30, data.textPage, reinterpret_cast<HMENU>(static_cast<INT_PTR>(ID_TEXT_BLUE)), GetModuleHandleW(nullptr), nullptr);
+    label(data.textPage, text(state.language, "text_blue"), 340, 236, 18, 22);
+    data.textBlue = CreateWindowW(TRACKBAR_CLASSW, nullptr, WS_CHILD | WS_VISIBLE, 360, 231, 90, 30, data.textPage, reinterpret_cast<HMENU>(static_cast<INT_PTR>(ID_TEXT_BLUE)), GetModuleHandleW(nullptr), nullptr);
     SendMessageW(data.textBlue, TBM_SETRANGE, TRUE, MAKELONG(0, 63)); SendMessageW(data.textBlue, TBM_SETPOS, TRUE, state.textBlue);
 }
 
@@ -1509,14 +1500,6 @@ LRESULT CALLBACK MainWindow::procedure(
             data->app->startText(value);
             break;
         }
-
-        case ID_TEXT_SIZE:
-            if (HIWORD(wParam) == CBN_SELCHANGE) {
-                const int sel = static_cast<int>(SendMessageW(data->textSize, CB_GETCURSEL, 0, 0));
-                data->app->state().textSize = sel == 0 ? 3 : sel == 2 ? 8 : 5;
-                data->app->state().textOffset = -9.0;
-            }
-            break;
 
         case ID_TEXT_ANIMATION:
             if (HIWORD(wParam) == CBN_SELCHANGE) {

@@ -18,8 +18,41 @@ static const Glyph5x7 kLower[26] = {
 const Glyph5x7& glyph(wchar_t ch){ static const Glyph5x7 blank{{0,0,0,0,0}}; if(ch>=L'A'&&ch<=L'Z')return kUpper[ch-L'A']; if(ch>=L'a'&&ch<=L'z')return kLower[ch-L'a']; return blank; }
 Rgb textColor(const AppState& s,double f){const double b=s.brightness/100.0;return {(s.textRed/63.0)*b*f,(s.textGreen/63.0)*b*f,(s.textBlue/63.0)*b*f};}
 double textAnimationFactor(const AppState& s){const double p=std::fmod(s.animationPhase*0.35,2.0);switch(s.textAnimation){case 2:return std::clamp(p,0.0,1.0);case 3:return 1.0-std::clamp(p,0.0,1.0);case 4:return p<=1.0?p:2.0-p;case 5:return p<1.0?1.0:0.05;default:return 1.0;}}
-bool textPixel(const AppState& s,int sx,int y){const int size=s.textSize;const int gw=size==3?4:6; if(sx<0||y<0)return false;const int ci=sx/gw;const int lx=sx%gw;if(ci<0||ci>=static_cast<int>(s.textContent.size()))return false;const auto& g=glyph(s.textContent[ci]);if(lx>=(size==3?3:5))return false;if(size==3){static const int mx[3]={0,2,4};static const int my[5]={0,1,3,5,6};return y<5&&(g.col[mx[lx]]&(1u<<my[y]));}if(size==5)return y<7&&(g.col[lx]&(1u<<y));const int sx5=std::min(4,lx*5/8);const int sy7=std::min(6,y*7/8);return y<8&&(g.col[sx5]&(1u<<sy7));}
-void renderText(const AppState& s,LedFrame& frame,FunctionKeyFrame& keys){for(auto& row:frame)for(auto& p:row)p={};for(auto& k:keys)k={};const int gw=s.textSize==3?4:6;const int total=static_cast<int>(s.textContent.size())*gw;const double f=textAnimationFactor(s);const Rgb c=textColor(s,f);const int scroll=s.textAnimation==1?static_cast<int>(std::floor(s.textOffset)):0;for(int y=0;y<8;++y)for(int x=0;x<9;++x){const int sx=x-s.textX+scroll;const int sy=y-s.textY;if(sx<0||sx>=total||sy<0||sy>=8||!textPixel(s,sx,sy))continue;if(x<8)frame[y][x]=c;else keys[y]=c;}}
+bool textPixel(const AppState& s,int sx,int y){const int gw=6; if(sx<0||y<0)return false;const int ci=sx/gw;const int lx=sx%gw;if(ci<0||ci>=static_cast<int>(s.textContent.size()))return false;const auto& g=glyph(s.textContent[ci]);if(lx>=5)return false;return y<7&&(g.col[lx]&(1u<<y));}
+void renderText(const AppState& s,LedFrame& frame,FunctionKeyFrame& keys){
+    for(auto& row:frame)for(auto& p:row)p={};
+    for(auto& k:keys)k={};
+
+    // Text size is intentionally fixed at the native 5x7 font.
+    const int gw=6;
+    const int total=static_cast<int>(s.textContent.size())*gw;
+    const double f=textAnimationFactor(s);
+    const Rgb c=textColor(s,f);
+
+    if(s.textAnimation==1){
+        // Scroll remains smooth; only its speed is adjusted.
+        const int scroll=static_cast<int>(std::floor(s.textOffset));
+        for(int y=0;y<8;++y)for(int x=0;x<9;++x){
+            const int sx=x-s.textX+scroll;
+            const int sy=y-s.textY;
+            if(sx<0||sx>=total||sy<0||sy>=8||!textPixel(s,sx,sy))continue;
+            if(x<8)frame[y][x]=c;else keys[y]=c;
+        }
+        return;
+    }
+
+    // Non-scroll animations reveal the message one complete character at a time.
+    // Once a character is revealed it stays visible, so no partial glyphs appear.
+    const double charInterval=0.42/(0.2+s.textSpeed/10.0);
+    const int visible=std::clamp(static_cast<int>(std::floor(s.animationPhase/charInterval)),0,static_cast<int>(s.textContent.size()));
+    const int shownWidth=visible*gw;
+    for(int y=0;y<8;++y)for(int x=0;x<9;++x){
+        const int sx=x-s.textX;
+        const int sy=y-s.textY;
+        if(sx<0||sx>=shownWidth||sy<0||sy>=7||!textPixel(s,sx,sy))continue;
+        if(x<8)frame[y][x]=c;else keys[y]=c;
+    }
+}
 }
 
 void EffectEngine::render(AppState& state,LedFrame& frame,FunctionKeyFrame& functionKeys) const
@@ -32,7 +65,7 @@ void EffectEngine::render(AppState& state,LedFrame& frame,FunctionKeyFrame& func
     else{renderFunctionKeys(state,frame,functionKeys);}
     const double speed=state.speed/20.0;
     state.animationPhase+=0.035*(0.2+speed);
-    if(state.effect==Effect::Text&&state.textAnimation==1){const double step=0.03*(0.2+state.textSpeed/10.0);state.textOffset+=step;const int gw=state.textSize==3?4:6;const double total=static_cast<double>(state.textContent.size()*gw+9);if(state.textOffset>total)state.textOffset=-9.0;}
+    if(state.effect==Effect::Text&&state.textAnimation==1){const double step=0.045*(0.2+state.textSpeed/10.0);state.textOffset+=step;const int gw=6;const double total=static_cast<double>(state.textContent.size()*gw+9);if(state.textOffset>total)state.textOffset=-9.0;}
 }
 
 void EffectEngine::renderBase(const AppState& state,LedFrame& frame) const
