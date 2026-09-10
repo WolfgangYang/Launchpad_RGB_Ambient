@@ -32,7 +32,6 @@ enum ControlId {
     ID_STOP = 140,
     ID_TEXT_INPUT,
     ID_TEXT_START,
-    ID_TEXT_X,
     ID_TEXT_Y,
     ID_TEXT_SPEED,
     ID_TEXT_ANIMATION,
@@ -67,7 +66,6 @@ struct WindowData {
     int tab = 0;
     HWND textInput = nullptr;
     HWND textHint = nullptr;
-    HWND textX = nullptr;
     HWND textY = nullptr;
     HWND textSpeed = nullptr;
     HWND textAnimation = nullptr;
@@ -645,12 +643,8 @@ void createTextPage(HWND window, WindowData& data)
     button(data.textPage, ID_STOP, text(state.language, "stop"), 382, 41, 60, 30);
 
     label(data.textPage, text(state.language, "text_position"), 5, 112, 90, 22);
-    label(data.textPage, L"X", 100, 112, 18, 22);
-    data.textX = CreateWindowW(TRACKBAR_CLASSW, nullptr, WS_CHILD | WS_VISIBLE, 118, 107, 125, 30, data.textPage, reinterpret_cast<HMENU>(static_cast<INT_PTR>(ID_TEXT_X)), GetModuleHandleW(nullptr), nullptr);
-    SendMessageW(data.textX, TBM_SETRANGE, TRUE, MAKELONG(-8, 8));
-    SendMessageW(data.textX, TBM_SETPOS, TRUE, state.textX);
-    label(data.textPage, L"Y", 255, 112, 18, 22);
-    data.textY = CreateWindowW(TRACKBAR_CLASSW, nullptr, WS_CHILD | WS_VISIBLE, 273, 107, 125, 30, data.textPage, reinterpret_cast<HMENU>(static_cast<INT_PTR>(ID_TEXT_Y)), GetModuleHandleW(nullptr), nullptr);
+    label(data.textPage, L"Y", 100, 112, 18, 22);
+    data.textY = CreateWindowW(TRACKBAR_CLASSW, nullptr, WS_CHILD | WS_VISIBLE, 118, 107, 300, 30, data.textPage, reinterpret_cast<HMENU>(static_cast<INT_PTR>(ID_TEXT_Y)), GetModuleHandleW(nullptr), nullptr);
     SendMessageW(data.textY, TBM_SETRANGE, TRUE, MAKELONG(-7, 7));
     SendMessageW(data.textY, TBM_SETPOS, TRUE, state.textY);
 
@@ -667,13 +661,13 @@ void createTextPage(HWND window, WindowData& data)
 
     label(data.textPage, text(state.language, "text_color"), 5, 236, 90, 22);
     label(data.textPage, text(state.language, "text_red"), 100, 236, 18, 22);
-    data.textRed = CreateWindowW(TRACKBAR_CLASSW, nullptr, WS_CHILD | WS_VISIBLE, 120, 231, 90, 30, data.textPage, reinterpret_cast<HMENU>(static_cast<INT_PTR>(ID_TEXT_RED)), GetModuleHandleW(nullptr), nullptr);
+    data.textRed = CreateWindowW(TRACKBAR_CLASSW, nullptr, WS_CHILD | WS_VISIBLE, 120, 231, 300, 30, data.textPage, reinterpret_cast<HMENU>(static_cast<INT_PTR>(ID_TEXT_RED)), GetModuleHandleW(nullptr), nullptr);
     SendMessageW(data.textRed, TBM_SETRANGE, TRUE, MAKELONG(0, 63)); SendMessageW(data.textRed, TBM_SETPOS, TRUE, state.textRed);
-    label(data.textPage, text(state.language, "text_green"), 220, 236, 18, 22);
-    data.textGreen = CreateWindowW(TRACKBAR_CLASSW, nullptr, WS_CHILD | WS_VISIBLE, 240, 231, 90, 30, data.textPage, reinterpret_cast<HMENU>(static_cast<INT_PTR>(ID_TEXT_GREEN)), GetModuleHandleW(nullptr), nullptr);
+    label(data.textPage, text(state.language, "text_green"), 100, 271, 18, 22);
+    data.textGreen = CreateWindowW(TRACKBAR_CLASSW, nullptr, WS_CHILD | WS_VISIBLE, 120, 266, 300, 30, data.textPage, reinterpret_cast<HMENU>(static_cast<INT_PTR>(ID_TEXT_GREEN)), GetModuleHandleW(nullptr), nullptr);
     SendMessageW(data.textGreen, TBM_SETRANGE, TRUE, MAKELONG(0, 63)); SendMessageW(data.textGreen, TBM_SETPOS, TRUE, state.textGreen);
-    label(data.textPage, text(state.language, "text_blue"), 340, 236, 18, 22);
-    data.textBlue = CreateWindowW(TRACKBAR_CLASSW, nullptr, WS_CHILD | WS_VISIBLE, 360, 231, 90, 30, data.textPage, reinterpret_cast<HMENU>(static_cast<INT_PTR>(ID_TEXT_BLUE)), GetModuleHandleW(nullptr), nullptr);
+    label(data.textPage, text(state.language, "text_blue"), 100, 306, 18, 22);
+    data.textBlue = CreateWindowW(TRACKBAR_CLASSW, nullptr, WS_CHILD | WS_VISIBLE, 120, 301, 300, 30, data.textPage, reinterpret_cast<HMENU>(static_cast<INT_PTR>(ID_TEXT_BLUE)), GetModuleHandleW(nullptr), nullptr);
     SendMessageW(data.textBlue, TBM_SETRANGE, TRUE, MAKELONG(0, 63)); SendMessageW(data.textBlue, TBM_SETPOS, TRUE, state.textBlue);
 }
 
@@ -1593,9 +1587,6 @@ LRESULT CALLBACK MainWindow::procedure(
         }
         else if (reinterpret_cast<HWND>(lParam) == data->speed) {
             data->app->state().speed = static_cast<int>(SendMessageW(data->speed, TBM_GETPOS, 0, 0));
-        }
-        else if (reinterpret_cast<HWND>(lParam) == data->textX) {
-            data->app->state().textX = static_cast<int>(SendMessageW(data->textX, TBM_GETPOS, 0, 0));
         }
         else if (reinterpret_cast<HWND>(lParam) == data->textY) {
             data->app->state().textY = static_cast<int>(SendMessageW(data->textY, TBM_GETPOS, 0, 0));

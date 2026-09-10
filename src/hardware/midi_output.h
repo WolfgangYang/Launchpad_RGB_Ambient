@@ -3,6 +3,7 @@
 #include <windows.h>
 #include <mmsystem.h>
 #include <string>
+#include <array>
 #include <vector>
 
 namespace lra {
@@ -29,6 +30,7 @@ public:
     bool setLed(int x, int y, BYTE red, BYTE green, BYTE blue);
     bool setFunctionKey(int index, BYTE red, BYTE green, BYTE blue);
     bool setTopFunctionKey(int index, BYTE red, BYTE green, BYTE blue);
+    bool sendFrame(const std::array<std::array<BYTE, 3>, 80>& colors);
     void clearGrid();
 
 private:

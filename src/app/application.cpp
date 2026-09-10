@@ -3,6 +3,7 @@
 #include "../localization/localization.h"
 
 #include <algorithm>
+#include <array>
 #include <cwchar>
 
 namespace lra {
@@ -272,91 +273,33 @@ void Application::render()
         return;
     }
 
-    // Keep the RGB SysEx path used by the verified v0.3 version.
+    std::array<std::array<BYTE, 3>, 80> colors{};
+    auto toMidi = [](const Rgb& rgb) {
+        return std::array<BYTE, 3>{
+            static_cast<BYTE>(std::clamp(rgb.r, 0.0, 1.0) * 63.0),
+            static_cast<BYTE>(std::clamp(rgb.g, 0.0, 1.0) * 63.0),
+            static_cast<BYTE>(std::clamp(rgb.b, 0.0, 1.0) * 63.0)
+        };
+    };
+
+    int index = 0;
     for (int y = 0; y < 8; ++y) {
         for (int x = 0; x < 8; ++x) {
-            const Rgb& rgb = frame_[y][x];
-
-            const BYTE red = static_cast<BYTE>(
-                std::clamp(rgb.r, 0.0, 1.0) * 63.0
-            );
-
-            const BYTE green = static_cast<BYTE>(
-                std::clamp(rgb.g, 0.0, 1.0) * 63.0
-            );
-
-            const BYTE blue = static_cast<BYTE>(
-                std::clamp(rgb.b, 0.0, 1.0) * 63.0
-            );
-
-            if (!midi_.setLed(
-                    x,
-                    y,
-                    red,
-                    green,
-                    blue)) {
-
-                // The device disappeared while rendering.
-                // Restore the complete software output state as well.
-                stopAll();
-                return;
-            }
+            colors[index++] = toMidi(frame_[y][x]);
         }
     }
-
-    // Right-side function keys, top to bottom.
     for (int i = 0; i < 8; ++i) {
-        const Rgb& rgb = functionKeys_[i];
-
-        const BYTE red = static_cast<BYTE>(
-            std::clamp(rgb.r, 0.0, 1.0) * 63.0
-        );
-
-        const BYTE green = static_cast<BYTE>(
-            std::clamp(rgb.g, 0.0, 1.0) * 63.0
-        );
-
-        const BYTE blue = static_cast<BYTE>(
-            std::clamp(rgb.b, 0.0, 1.0) * 63.0
-        );
-
-        if (!midi_.setFunctionKey(
-                i,
-                red,
-                green,
-                blue)) {
-
-            stopAll();
-            return;
-        }
+        colors[index++] = toMidi(functionKeys_[i]);
     }
-
-    // Top-side function keys, left to right.
     for (int i = 0; i < 8; ++i) {
-        const Rgb& rgb = functionKeys_[8 + i];
-
-        const BYTE red = static_cast<BYTE>(
-            std::clamp(rgb.r, 0.0, 1.0) * 63.0
-        );
-
-        const BYTE green = static_cast<BYTE>(
-            std::clamp(rgb.g, 0.0, 1.0) * 63.0
-        );
-
-        const BYTE blue = static_cast<BYTE>(
-            std::clamp(rgb.b, 0.0, 1.0) * 63.0
-        );
-
-        if (!midi_.setTopFunctionKey(
-                i,
-                red,
-                green,
-                blue)) {
-
-            stopAll();
-            return;
-        }
+        colors[index++] = toMidi(functionKeys_[8 + i]);
     }
+
+    if (!midi_.sendFrame(colors)) {
+        // The device disappeared while rendering.
+        stopAll();
+    }
+
 }
 
 void Application::updateStatistics()
