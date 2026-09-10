@@ -269,46 +269,29 @@ bool MidiOutput::setLed(
     return sendSysEx(message, sizeof(message));
 }
 
-bool MidiOutput::sendFrame(const std::array<std::array<BYTE, 3>, 80>& colors)
-{
-    if (!device_) {
-        return false;
-    }
-
-    // Launchpad MK2 accepts up to 80 RGB SysEx LED updates.
-    // Send the complete frame as one MIDI data block instead of
-    // blocking the UI once for every LED.
-    std::array<BYTE, 12 * 80> data{};
-    for (int i = 0; i < 80; ++i) {
-        const std::size_t offset = static_cast<std::size_t>(i) * 12;
-        data[offset + 0] = 0xF0;
-        data[offset + 1] = 0x00;
-        data[offset + 2] = 0x20;
-        data[offset + 3] = 0x29;
-        data[offset + 4] = 0x02;
-        data[offset + 5] = 0x18;
-        data[offset + 6] = 0x0B;
-        data[offset + 7] = static_cast<BYTE>(
-            i < 64 ? launchpadLed(i % 8, i / 8)
-                   : (i < 72 ? launchpadFunctionKey(i - 64)
-                             : launchpadTopFunctionKey(i - 72)));
-        data[offset + 8] = colors[i][0];
-        data[offset + 9] = colors[i][1];
-        data[offset + 10] = colors[i][2];
-        data[offset + 11] = 0xF7;
-    }
-
-    return sendSysEx(data.data(), static_cast<DWORD>(data.size()));
-}
-
 void MidiOutput::clearGrid()
 {
     if (!device_) {
         return;
     }
 
-    std::array<std::array<BYTE, 3>, 80> colors{};
-    sendFrame(colors);
+    for (int y = 0; y < 8; ++y) {
+        for (int x = 0; x < 8; ++x) {
+            if (!setLed(x, y, 0, 0, 0)) {
+                return;
+            }
+        }
+    }
+
+    for (int i = 0; i < 8; ++i) {
+        if (!setFunctionKey(i, 0, 0, 0)) {
+            return;
+        }
+
+        if (!setTopFunctionKey(i, 0, 0, 0)) {
+            return;
+        }
+    }
 }
 
 } // namespace lra

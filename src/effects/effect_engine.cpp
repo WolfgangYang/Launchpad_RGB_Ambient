@@ -22,9 +22,10 @@ void renderText(const AppState& s,LedFrame& frame,FunctionKeyFrame& keys){
     for(auto& row:frame)for(auto& p:row)p={};
     for(auto& k:keys)k={};
 
-    // Text size is intentionally fixed at the native 5x7 font.
+    // Text uses the fixed native 5x7 font.
     const int gw=6;
     const int total=static_cast<int>(s.textContent.size())*gw;
+
     if(s.textAnimation==1){
         // Scroll remains smooth and horizontal.
         const int scroll=static_cast<int>(std::floor(s.textOffset));
@@ -38,63 +39,63 @@ void renderText(const AppState& s,LedFrame& frame,FunctionKeyFrame& keys){
         return;
     }
 
-    // Non-scroll modes advance one complete character at a time.
+    // Non-scroll modes show exactly one complete character at a time.
+    // The character is centered in the main 8x8 area.
     const double charInterval = 0.55 / (0.2 + s.textSpeed / 10.0);
     const double sequence = s.animationPhase / charInterval;
     const int activeChar = static_cast<int>(std::floor(sequence));
     const double local = sequence - static_cast<double>(activeChar);
 
-    if (activeChar < 0 || activeChar >= static_cast<int>(s.textContent.size())) {
+    if(activeChar < 0 ||
+       activeChar >= static_cast<int>(s.textContent.size())){
         return;
     }
 
-    double f = 1.0;
-    switch (s.textAnimation) {
-    case 2: // Fade In: fade one character in, then remove it and advance.
-        f = local;
+    double f=1.0;
+
+    switch(s.textAnimation){
+    case 2: // Fade In: fade in one character, remove it, then advance.
+        f=local;
         break;
-    case 3: // Fade Out: show one character fully, then fade it out and advance.
-        f = 1.0 - local;
+
+    case 3: // Fade Out: show one character, fade it out, then advance.
+        f=1.0-local;
         break;
-    case 4: // Fade In/Out: each character completes a full fade cycle.
-        f = (local < 0.5)
-            ? (local * 2.0)
-            : (2.0 - local * 2.0);
+
+    case 4: // Fade In/Out: one character completes its cycle, then next.
+        f=(local<0.5)
+            ? local*2.0
+            : 2.0-local*2.0;
         break;
-    case 5: // Blink: one complete character at a time.
-        f = local < 0.5 ? 1.0 : 0.0;
+
+    case 5: // Blink: one character blinks, then advances.
+        f=local<0.5 ? 1.0 : 0.0;
         break;
-    default: // Static: reveal one complete character per step and keep it.
-        f = 1.0;
+
+    default: // Static: one complete character at a time.
+        f=1.0;
         break;
     }
 
-    const auto& g = glyph(s.textContent[activeChar]);
-    const int startX = activeChar * gw;
-    const Rgb c = textColor(s, std::clamp(f, 0.0, 1.0));
-    if (f <= 0.0) {
-        return;
-    }
+    f=std::clamp(f,0.0,1.0);
+    if(f<=0.0)return;
 
+    const auto& g=glyph(s.textContent[activeChar]);
+    const Rgb c=textColor(s,f);
 
-    for (int y = 0; y < 8; ++y) {
-        const int sy = y - s.textY;
-        if (sy < 0 || sy >= 7) {
-            continue;
-        }
-        for (int x = 0; x < 9; ++x) {
-            const int sx = x - startX;
-            if (sx < 0 || sx >= gw || sx >= 5) {
-                continue;
-            }
-            if ((g.col[sx] & (1u << sy)) == 0) {
-                continue;
-            }
-            if (x < 8) {
-                frame[y][x] = c;
-            } else {
-                keys[y] = c;
-            }
+    // 5 columns centered inside the 8-column main grid.
+    const int startX=1;
+
+    for(int y=0;y<8;++y){
+        const int sy=y-s.textY;
+        if(sy<0||sy>=7)continue;
+
+        for(int x=0;x<8;++x){
+            const int sx=x-startX;
+            if(sx<0||sx>=5)continue;
+
+            if((g.col[sx]&(1u<<sy))==0)continue;
+            frame[y][x]=c;
         }
     }
 }
