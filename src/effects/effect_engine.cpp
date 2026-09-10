@@ -58,11 +58,14 @@ void renderText(const AppState& s,LedFrame& frame,FunctionKeyFrame& keys){
         f=local;
         break;
 
-    case 3: // Fade Out: show one character, fade it out, then advance.
-        f=1.0-local;
+    case 3: // Fade Out: hold at full brightness briefly, then fade out.
+        if(local<0.15)
+            f=1.0;
+        else
+            f=1.0-((local-0.15)/0.85);
         break;
 
-    case 4: // Fade In/Out: one character completes its cycle, then next.
+    case 4: // Fade In/Out: fade in from dark, then fade back out.
         f=(local<0.5)
             ? local*2.0
             : 2.0-local*2.0;
